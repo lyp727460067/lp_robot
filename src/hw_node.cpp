@@ -11,7 +11,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
-
+#include <atomic>
 #include "dev_socket.h"
 #include "geometry_msgs/Transform.h"
 #include "gflags/gflags.h"
@@ -29,7 +29,7 @@ bool SendFlag = false;
 ros::Publisher odom_pub;
 std::pair<std::string,int> host_ip{"127.0.0.1",8555};
 
-std::atomic<bool> odom_recive(false);
+std::atomic<bool> odom_recive{false};
 std::ostream& operator<<(std::ostream& out, std::vector<uint8_t>& data) {
   out << "hex ";
   out << std::hex;
