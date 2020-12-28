@@ -13,8 +13,12 @@
     <rosparam file="$(find lp_robot)/param/costmap_common_params.yaml" command="load" ns="global_costmap" />
     <rosparam file="$(find lp_robot)/param/costmap_common_params.yaml" command="load" ns="local_costmap" />   
     <rosparam file="$(find lp_robot)/param/local_costmap_params.yaml" command="load" />   
-    <rosparam file="$(find lp_robot)/param/global_costmap_params.yaml" command="load" />
+   <rosparam file="$(find lp_robot)/param/global_costmap_params.yaml" command="load" />
+
+    
     <rosparam file="$(find lp_robot)/param/dwa_local_planner_params.yaml" command="load" />
+
+     <!-- <rosparam file="$(find lp_robot)/param/teb_local_planner_params.yaml" command="load" />-->
     <rosparam file="$(find lp_robot)/param/move_base_params.yaml" command="load" />
     <rosparam file="$(find lp_robot)/param/global_planner_params.yaml" command="load" />
     <rosparam file="$(find lp_robot)/param/navfn_global_planner_params.yaml" command="load" />
