@@ -3,6 +3,7 @@
 #include <tf/transform_listener.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
@@ -11,7 +12,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
-#include <atomic>
+
 #include "dev_socket.h"
 #include "geometry_msgs/Transform.h"
 #include "gflags/gflags.h"

@@ -7,7 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  move_base_msg
+  move_base_msgs
   actionlib
 )
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Cmake)
@@ -128,6 +128,9 @@ include_directories(
  ${catkin_INCLUDE_DIRS}
  ${GLOG_INCLUDE_DIR}
  ${GFLAGS_INCLUDE_DIR}
+ ${EIGEN3_INCLUDE_DIR}
+
+ 
 )
 
 ## Declare a C++ library
@@ -147,6 +150,8 @@ add_executable( ${PROJECT_NAME}_keybord
 src/keyboard.cpp)
 set(hw_src src/hw_node.cpp src/dev_socket.cpp src/dev_socket.h src/socket_wrapper.cpp src/socket_wrapper.h)
 add_executable(${PROJECT_NAME}_hw_node ${hw_src})
+add_executable(${PROJECT_NAME}_mutytarget_node src/mult_point_nav.cpp)
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -170,6 +175,12 @@ target_link_libraries(${PROJECT_NAME}_hw_node
   ${catkin_LIBRARIES}
   ${GFLAGS_LIBRARIES}
  )
+ target_link_libraries(${PROJECT_NAME}_mutytarget_node
+ ${GLOG_LIBRARIES}
+ ${EIGEN3_LIBS}
+ ${catkin_LIBRARIES}
+ ${GFLAGS_LIBRARIES}
+)
 
 
 #############
