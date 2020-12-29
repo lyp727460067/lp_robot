@@ -64,7 +64,7 @@ TebLocalPlannerROS:
  obstacle_cost_exponent: 4
  weight_max_vel_x: 2
  weight_max_vel_theta: 1
- weight_acc_lim_x: 1
+ weight_acc_lim_x: 0.1
  weight_acc_lim_theta: 1
  weight_kinematics_nh: 1000
  weight_kinematics_forward_drive: 5

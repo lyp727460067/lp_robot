@@ -7,6 +7,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  move_base_msg
+  actionlib
 )
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Cmake)
 ## Find catkin macros and libraries
