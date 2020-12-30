@@ -9,7 +9,7 @@ namespace internal {
 
 namespace linx_seria {
 int  Create(const char *port, int baut);
-bool Writen(int fd, const char *data, int n);
+bool Writen(int fd, char *buf, int n);
 bool Readn(int fd, const char *data, int n);
 bool Close(int fd);
 }  // namespace linx_seria
