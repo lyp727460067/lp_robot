@@ -1,10 +1,10 @@
 <launch>
 
 <arg name="cmd_topic" default="cmd_vel" />
-<arg name="walk_vel"  default="100" />
-<arg name="run_vel"   default="400" />
-<arg name="yaw_rate"   default="40" />
-<arg name="yaw_rate_run"   default="40" />
+<arg name="walk_vel"  default="0.4" />
+<arg name="run_vel"   default="0.8" />
+<arg name="yaw_rate"   default="0.2" />
+<arg name="yaw_rate_run"   default="0.4" />
 <arg name="hz"  					 default="50" />
 
 <include file= "$(find realsense2_camera)/launch/rs_camera.launch"/>

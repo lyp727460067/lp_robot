@@ -8,19 +8,19 @@ map_type: voxel
 
 obstacle_layer:
   enabled:              true
-  max_obstacle_height:  0.6
+  max_obstacle_height:  1.4
   origin_z:             0.0
   z_resolution:         0.2
-  z_voxels:             2
   unknown_threshold:    15
   mark_threshold:       0
   combination_method:   1
   track_unknown_space:  true    #true needed for disabling global path planning through unknown space
   obstacle_range: 4.5
-  raytrace_range: 3.0
+  raytrace_range: 10.0
   origin_z: 0.0
   z_resolution: 0.2
-  z_voxels: 2
+  z_voxels: 4  #注意雷达高度如果高于这个的hua会 报告下面这个错
+  #The origin for the sensor at (0.20, 0.03, 0.44) is out of map bound
   publish_voxel_map: true
   observation_sources:  scan
   scan:
@@ -29,7 +29,7 @@ obstacle_layer:
     marking: true
     clearing: true
     min_obstacle_height: -0.05
-    max_obstacle_height: 0.35
+    max_obstacle_height: 1.35
   bump:
     data_type: PointCloud2
     topic: mobile_base/sensors/bumper_pointcloud
@@ -43,7 +43,7 @@ obstacle_layer:
 inflation_layer:
   enabled:              true
   cost_scaling_factor:  5.0  # exponential rate at which the obstacle cost drops off (default: 10)
-  inflation_radius:     0.02 # max. distance from an obstacle at which costs are incurred for planning paths.
+  inflation_radius:     0.1 # max. distance from an obstacle at which costs are incurred for planning paths.
 
 static_layer:
   enabled:              true

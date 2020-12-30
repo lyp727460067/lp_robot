@@ -3,6 +3,7 @@
 #include <tf/transform_listener.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
@@ -29,7 +30,7 @@ bool SendFlag = false;
 ros::Publisher odom_pub;
 std::pair<std::string,int> host_ip{"127.0.0.1",8555};
 
-std::atomic<bool> odom_recive(false);
+std::atomic<bool> odom_recive{false};
 std::ostream& operator<<(std::ostream& out, std::vector<uint8_t>& data) {
   out << "hex ";
   out << std::hex;
