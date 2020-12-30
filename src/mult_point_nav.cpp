@@ -66,8 +66,8 @@ void CheckInputTarget() {
   std::vector<Eigen::Vector3d> targets;
   std::string str;
   LOG(INFO) << "please input target pose";
-  while (std::getline(std::cin, str))
-    ;
+  while (std::getline(std::cin, str)) {
+  }
   std::string::size_type start_pos = str.find_first_not_of('[');
   while (start_pos != std::string::npos && ros::ok()) {
     std::string::size_type end_pose = str.find_first_of(']');
