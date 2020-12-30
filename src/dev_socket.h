@@ -29,6 +29,9 @@ class DevSocket : public DevInterface {
 
 
 };
+
+
+
 }  // namespace internal
 }  // namespace device
 }  // namespace lprobot
