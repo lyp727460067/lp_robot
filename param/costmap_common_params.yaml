@@ -22,9 +22,9 @@ obstacle_layer:
   z_voxels: 4  #注意雷达高度如果高于这个的hua会 报告下面这个错
   #The origin for the sensor at (0.20, 0.03, 0.44) is out of map bound
   publish_voxel_map: true
-  observation_sources:  scan
+  observation_sources:  scan dpoint
   scan:
-    data_type: LaserScan dpoint
+    data_type: LaserScan 
     topic: /scan
     marking: true
     clearing: true
