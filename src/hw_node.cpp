@@ -54,8 +54,8 @@ struct HwData {
   float w;
 };
 struct HwCmd {
-  float v;
   float w;
+  float v;
 };
 
 HwCmd velocity_msg;
