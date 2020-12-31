@@ -24,12 +24,19 @@ obstacle_layer:
   publish_voxel_map: true
   observation_sources:  scan
   scan:
-    data_type: LaserScan
+    data_type: LaserScan dpoint
     topic: /scan
     marking: true
     clearing: true
     min_obstacle_height: -0.05
     max_obstacle_height: 1.35
+  dpoint:
+    data_type: PointCloud2
+    topic: /camera/depth/color/points
+    marking: true
+    clearing: true
+    min_obstacle_height: 0.1
+    max_obstacle_height: 1.35  
   bump:
     data_type: PointCloud2
     topic: mobile_base/sensors/bumper_pointcloud
