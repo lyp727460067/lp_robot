@@ -77,8 +77,8 @@ class DevSeri : public DevInterface {
  public:
   using CallBack = std::function<void(std::vector<uint8_t>&&)>;
   DevSeri() = default;
-  DevSeri(std::pair<string, int> para, int peri = 10, int pro_len = 10);
-  DevSeri(std::pair<string, int> para, const CallBack& callback, int peri = 10,
+  DevSeri(std::pair<std::string, int> para, int peri = 10, int pro_len = 10);
+  DevSeri(std::pair<std::string, int> para, const CallBack& callback, int peri = 10,
           int pro_len = 10) {}
 
   DevSeri(const CallBack& callback);

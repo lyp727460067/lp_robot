@@ -18,14 +18,13 @@ int Create(const char *port, int baut) {
   char buf[1024];
   int crport_fd_ = -1;
   int bardrate_ = baut;
-  int ret = snprintf(buf, sizeof(buf), "%s", port.c_str());
+  int ret = snprintf(buf, sizeof(buf), "%s", port);
   if (ret < 0 || ret >= static_cast<int>(sizeof(buf)))
     printf("%s %d: Warning buffer size(%u) is not enough(%d), please check!\n",
            __FUNCTION__, __LINE__, sizeof(buf), ret);
-  port_ = port;
   crport_fd_ = open(buf, O_RDWR | O_NOCTTY | O_NONBLOCK);
   if (crport_fd_ == -1) {
-    PP_ERROR("Open device %s, on baudrate %d failed!.", buf, baudrate);
+    printf("Open device %s, on baudrate %d failed!.", buf,baut);
     return -1;
   }
 
@@ -72,7 +71,6 @@ int Create(const char *port, int baut) {
   if (tcsetattr(crport_fd_, TCSANOW, &curopt_) != 0) {
     return false;
   }
-  serial_port_ready_ = true;
   printf("\033[32mserial port %s\033[0m init as %d done...", buf, crport_fd_);
   return crport_fd_;
 }
