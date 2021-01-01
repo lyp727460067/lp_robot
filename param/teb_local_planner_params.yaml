@@ -5,22 +5,22 @@ TebLocalPlannerROS:
  # Trajectory
   
  teb_autosize: True
- dt_ref: 0.3
+ dt_ref: 0.1
  dt_hysteresis: 0.1
  max_samples: 500
  global_plan_overwrite_orientation: True
  allow_init_with_backwards_motion: False
- max_global_plan_lookahead_dist: 3.0
+ max_global_plan_lookahead_dist: 2.0
  global_plan_viapoint_sep: -1
  global_plan_prune_distance: 2
  exact_arc_length: False
- feasibility_check_no_poses: 5
+ feasibility_check_no_poses: 4
  publish_feedback: False
     
  # Robot
          
  max_vel_x: 0.4
- max_vel_x_backwards: 0.1
+ max_vel_x_backwards: 0.4
  max_vel_y: 0.0
  max_vel_theta: 0.8
  acc_lim_x: 0.5
@@ -45,7 +45,7 @@ TebLocalPlannerROS:
  costmap_obstacles_behind_robot_dist: 2.0
  obstacle_poses_affected: 15
 
- dynamic_obstacle_inflation_dist: 0.6
+ dynamic_obstacle_inflation_dist: 0.1
  include_dynamic_obstacles: True
 
  costmap_converter_plugin: ""
@@ -70,12 +70,12 @@ TebLocalPlannerROS:
  weight_kinematics_forward_drive: 5
  weight_kinematics_turning_radius: 1
  weight_optimaltime: 1 # must be > 0
- weight_shortest_path: 0
+ weight_shortest_path: 10
  weight_obstacle: 100
  weight_inflation: 1.1
  weight_dynamic_obstacle: 10
- weight_dynamic_obstacle_inflation: 0.2
- weight_viapoint: 1
+ weight_dynamic_obstacle_inflation: 0.1
+ weight_viapoint: 0.8
  weight_adapt_factor: 2
 
  # Homotopy Class Planner

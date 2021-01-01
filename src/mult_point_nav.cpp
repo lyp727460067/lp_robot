@@ -11,7 +11,7 @@
 #include "actionlib/client/simple_action_client.h"
 #include "glog/logging.h"
 #include "move_base_msgs/MoveBaseAction.h"
-#include "move_base_msgs/RecoveryStatus.h"
+//#include "move_base_msgs/RecoveryStatus.h"
 #include "ros/ros.h"
 #include "ros/ros.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
