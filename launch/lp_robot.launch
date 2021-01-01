@@ -7,11 +7,12 @@
 <arg name="yaw_rate_run"   default="0.4" />
 <arg name="hz"  					 default="50" />
 
-<include file= "$(find realsense2_camera)/launch/rs_camera.launch"/>
-<include file="$(find	sick_scan)/launch/sick_lms_1xxx.launch"/>
+<!--<include file= "$(find realsense2_camera)/launch/rs_camera.launch"/>-->
+<include file="$(find	rplidar_ros)/launch/rplidar_s1.launch"/>
 
 <!--<include file="$(find	cartograper_ros)/launch/backpack_2d_lp.launch"/>-->
-<include file="$(find	lp_robot)/launch/move_base.launch"/>
+<include file="$(find	boost_node)/launch/boost_node.launch"/>
+<!--<include file="$(find	lp_robot)/launch/move_base.launch"/>-->
 <!--
 <node pkg="lp_robot" type="lp_robot_keybord" name="lp_robot">
 	<remap from="cmd_vel" to="$(arg cmd_topic)" />
@@ -22,7 +23,7 @@
 	<param name="yaw_rate_run" value="$(arg yaw_rate_run)"/>
 </node>
 -->
-<node pkg="lp_robot" type="lp_robot_hw_node" name="lp_robot_hw_node" output="screen"/>
+<!--<node pkg="lp_robot" type="lp_robot_hw_node" name="lp_robot_hw_node" output="screen"/>-->
 
 </launch>
 
