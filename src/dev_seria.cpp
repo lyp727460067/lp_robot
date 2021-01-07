@@ -24,7 +24,7 @@ class DevSeri<DataProcess>::Serio {
       }
       break;
     }
-    if (try_time 1 = 0) {
+    if (try_time  != 0) {
       thread_ = std::unique_ptr<std::thread>(
           new std::thread([this]() { this->update(); }));
       fd_ = fd;
@@ -57,6 +57,10 @@ class DevSeri<DataProcess>::Serio {
   }
   ~Serio() {
     kill_thread_ = true;
+    if (fd != -1) {
+      linx_seria::Close(fd);
+    }
+    fd = -1;
     if (thread_->joinable()) {
       thread_->join();
     }
@@ -77,7 +81,7 @@ class DevSeri<DataProcess>::Serio {
 template <typename DataProcess>
 DevSeri<DataProcess>::DevSeri(std::pair<std::string, int> para, int peri,
                               int pro_len)
-    {
+{
  
 }
 template <typename DataProce>

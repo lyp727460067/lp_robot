@@ -37,13 +37,6 @@ class BaterryDataProcess {
     for (auto p = d.begin(); p != cit; ++p) {
       string_value.push_back(*p);
     }
-    /*
-    std::istringstream s(string_value);
-    float re;
-    s >> re;
-    resul.push_back(re);
-    d.erase(d.begin(), it);*/
-
     return resul;
   }
 };
@@ -90,14 +83,6 @@ class DevSeri : public DevInterface {
  private:
   class Serio;
   std::unique_ptr<Serio> SerioImpl_;
-  constexpr static uint32_t try_times_ = 100;
-  int loop_peri_;
-  int process_lenth_;
-  bool kill_thread_ = false;
-  CallBack  result_fun_= nullptr;
-  DataProcess data_process_;
-  std::unique_ptr<std::thread> thread_;
-  std::mutex mutex_read_;
 };
 }  // namespace internal
 }  // namespace device
