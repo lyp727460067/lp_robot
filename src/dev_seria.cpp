@@ -39,16 +39,16 @@ class DevSeri<DataProcess>::Serio {
   }
 
   void update() {
-    std::vector<uint8_t> q_data(0, process_lenth_ * 3);
+    std::vector<uint8_t> q_data;
     while (!kill_thread_) {
       std::vector<uint8_t> data(0, process_lenth_);  //////
       int ret = linx_seria::Readn(&data.data, process_lenth_);
       if (ret <= 0) {
-        printf("Serial read return %d, request 1 byte.", ret);
+        std::cout<<"Serial read return "<<ret<<"request 1 byte"<<endl;
         std::this_thread::sleep_for(std::chrono::seconds(loop_peri_));
         continue;
       }
-      q_data.emplace_back(data);
+      q_data.insert(insert.end(),data.begin(),data.end());
       std::vector<uint8_t> result = data_process_(q_data);
       if (result_fun_) {
         result_fun_(result);
