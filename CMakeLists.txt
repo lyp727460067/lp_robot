@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   move_base_msgs
   actionlib
+  rosbag
+  nav_msgs
 )
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Cmake)
 ## Find catkin macros and libraries
@@ -151,7 +153,7 @@ src/keyboard.cpp)
 set(hw_src src/hw_node.cpp src/dev_socket.cpp src/dev_socket.h src/socket_wrapper.cpp src/socket_wrapper.h)
 add_executable(${PROJECT_NAME}_hw_node ${hw_src})
 add_executable(${PROJECT_NAME}_mutytarget_node src/mult_point_nav.cpp)
-
+add_executable(${PROJECT_NAME}_view_odom_node src/rosbag_node.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -181,7 +183,12 @@ target_link_libraries(${PROJECT_NAME}_hw_node
  ${catkin_LIBRARIES}
  ${GFLAGS_LIBRARIES}
 )
-
+target_link_libraries(${PROJECT_NAME}_view_odom_node
+${GLOG_LIBRARIES}
+${EIGEN3_LIBS}
+${catkin_LIBRARIES}
+${GFLAGS_LIBRARIES}
+)
 
 #############
 ## Install ##
