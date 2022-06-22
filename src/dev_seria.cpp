@@ -24,7 +24,8 @@ class DevSeri<DataProcess>::Serio {
       }
       break;
     }
-    if (try_time  != 0) {
+
+    if (try_time != 0) {
       thread_ = std::unique_ptr<std::thread>(
           new std::thread([this]() { this->update(); }));
       fd_ = fd;

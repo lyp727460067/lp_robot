@@ -7,15 +7,18 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  move_base_msgs
   actionlib
   rosbag
   nav_msgs
+    tf
+  cv_bridge
 )
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Cmake)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+
+find_package(OpenCV REQUIRED)
 find_package(catkin REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Glog REQUIRED)
@@ -131,7 +134,7 @@ include_directories(
  ${GLOG_INCLUDE_DIR}
  ${GFLAGS_INCLUDE_DIR}
  ${EIGEN3_INCLUDE_DIR}
-
+ ${OpenCV_INCLUDE_DIR}
  
 )
 
@@ -152,8 +155,11 @@ add_executable( ${PROJECT_NAME}_keybord
 src/keyboard.cpp)
 set(hw_src src/hw_node.cpp src/dev_socket.cpp src/dev_socket.h src/socket_wrapper.cpp src/socket_wrapper.h)
 add_executable(${PROJECT_NAME}_hw_node ${hw_src})
-add_executable(${PROJECT_NAME}_mutytarget_node src/mult_point_nav.cpp)
+#add_executable(${PROJECT_NAME}_mutytarget_node src/mult_point_nav.cpp)
 add_executable(${PROJECT_NAME}_view_odom_node src/rosbag_node.cpp)
+add_executable(${PROJECT_NAME}_merge_rosbag src/write_tf_to_rosbag.cpp)
+add_executable(view_groudtrue_mult  src/view_groudtrue_multypath.cpp)
+add_executable(rosba_extract src/rosbag_extract.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -177,19 +183,32 @@ target_link_libraries(${PROJECT_NAME}_hw_node
   ${catkin_LIBRARIES}
   ${GFLAGS_LIBRARIES}
  )
- target_link_libraries(${PROJECT_NAME}_mutytarget_node
- ${GLOG_LIBRARIES}
- ${EIGEN3_LIBS}
- ${catkin_LIBRARIES}
- ${GFLAGS_LIBRARIES}
-)
+# target_link_libraries(${PROJECT_NAME}_mutytarget_node
+#${GLOG_LIBRARIES}
+# ${EIGEN3_LIBS}
+# ${catkin_LIBRARIES}
+# ${GFLAGS_LIBRARIES}
+#)
 target_link_libraries(${PROJECT_NAME}_view_odom_node
 ${GLOG_LIBRARIES}
 ${EIGEN3_LIBS}
 ${catkin_LIBRARIES}
 ${GFLAGS_LIBRARIES}
 )
-
+target_link_libraries(${PROJECT_NAME}_merge_rosbag
+${GLOG_LIBRARIES}
+${EIGEN3_LIBS}
+${catkin_LIBRARIES}
+${GFLAGS_LIBRARIES}
+)
+target_link_libraries(rosba_extract
+${GLOG_LIBRARIES}
+${EIGEN3_LIBS}
+${catkin_LIBRARIES}
+${GFLAGS_LIBRARIES}
+${OpenCV_LIBS}
+)
+target_link_libraries(view_groudtrue_mult     boost_thread ${catkin_LIBRARIES} ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
 #############
 ## Install ##
 #############

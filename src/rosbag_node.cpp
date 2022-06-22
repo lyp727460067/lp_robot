@@ -22,15 +22,14 @@ int main(int argc,char **argv)
   mark.ns = namesring.c_str();
   mark.header.stamp = ::ros::Time::now();
   mark.id = 0;
-  ;
   //mark.action = visualization_msgs::Marker::ADD;
   //mark.type = visualization_msgs::Marker::LINE_STRIP;
   mark.type = visualization_msgs::Marker::POINTS;
   // mark.type = visualization_msgs::Marker::ARROW;
   //mark.lifetime = ros::Duration(0);
-  mark.scale.x = 0.05;
-  mark.scale.y = 0.05;
-  mark.scale.z = 0.05;
+  mark.scale.x = 0.5;
+  mark.scale.y = 0.5;
+  mark.scale.z = 0.5;
   //  std::uniform_real_distribution<float> ran(0, 1);
   mark.color.r = 1;   // 1.0;
   mark.color.a = 1;   // ran(e);
@@ -60,7 +59,7 @@ int main(int argc,char **argv)
        view_iterator++) {
     rosbag::MessageInstance msg = *view_iterator;
     if (msg.isType<nav_msgs::Odometry>()) {
-      if (msg.getTopic() == "/odom") {
+      if (msg.getTopic() == "/odometry/gps") {
         nav_msgs::OdometryConstPtr odom_ptr =
             msg.instantiate<nav_msgs::Odometry>();
         geometry_msgs::Point point;
@@ -69,7 +68,7 @@ int main(int argc,char **argv)
 				std::cout<<odom_ptr->pose.pose.orientation.y<<std::endl;
 				std::cout<<odom_ptr->pose.pose.orientation.z<<std::endl;
 				int x;
-				std::cin>>x;
+				// std::cin>>x;
         point.x = odom_ptr->pose.pose.position.x;
         point.y = odom_ptr->pose.pose.position.y;
         point.z = 0.0;
