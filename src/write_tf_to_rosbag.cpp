@@ -1,7 +1,8 @@
 #include <ros/ros.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
-
+#include <dirent.h>
+#include <sys/types.h>
 #include <chrono>
 #include <fstream>
 #include <map>
@@ -187,6 +188,20 @@ int main(int argc, char* argv[]) {
   ros::init(argc, argv, "write_tf_to_rosbag");
   ros::start();
 
+  // // //打开指定目录opendir得到目录句柄
+  // DIR* dir = opendir(argv[1]);
+
+  // // struct dirent结构体变量，用来存储子目录项
+  // struct dirent* entry;
+
+  // //然后通过while循环不断readdir，获取目录中的内容
+  // while ((entry = readdir(dir)) != 0) {
+  //   //获取该结构体变量的成员函数d_name就得到了待扫描的文件，然后在使用sprintf函数加入文件绝对路径
+  //   printf("%s\n", entry->d_name);
+  //   char* newpath;
+  //   sprintf(newpath, "%s%s", argv[1], entry->d_name);
+  //   printf("%s\n", newpath);
+  // }
 //
   std::set<std::string> fp_set;
   std::string targetPath(argv[1]);
@@ -205,6 +220,9 @@ int main(int argc, char* argv[]) {
     }
   }
   // //
+  for (const auto fp : fp_set) {
+    std::cout << fp<<std::endl;
+  }
   rosbag::Bag out_bag;
   std::string out_bag_filename(argv[2]);
   try {
