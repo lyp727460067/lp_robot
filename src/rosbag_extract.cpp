@@ -60,17 +60,47 @@ bool WriteOutPutImage(std::string outdir,const rosbag::MessageInstance &msg)
     cv::imwrite(outname,image);
   }
 }
+constexpr int64_t kUtsEpochOffsetFromUnixEpochInSeconds =
+    (719162ll * 24ll * 60ll * 60ll);
 
+struct UniversalTimeScaleClock {
+  using rep = int64_t;
+  using period = std::ratio<1, 10000000>;
+  using duration = std::chrono::duration<rep, period>;
+  using time_point = std::chrono::time_point<UniversalTimeScaleClock>;
+  static constexpr bool is_steady = true;
+};
+using Duration = UniversalTimeScaleClock::duration;
+using Time = UniversalTimeScaleClock::time_point;
+Time FromUniversal(const int64_t ticks) { return Time(Duration(ticks)); }
 
-bool WriteOutPutImu(std::string outdir,const rosbag::MessageInstance &msg)
-{
-  cv_bridge::CvImagePtr image_ptr;
-  if(msg.isType<sensor_msgs::Imu>()){
-
-  }
+Time FromRos(const ::ros::Time& time) {
+  // The epoch of the ICU Universal Time Scale is "0001-01-01 00:00:00.0
+  // +0000", exactly 719162 days before the Unix epoch.
+  return FromUniversal(
+      (time.sec + kUtsEpochOffsetFromUnixEpochInSeconds) *
+          10000000ll +
+      (time.nsec + 50) / 100);  // + 50 to get the rounding correct.
+}
+int64_t ToUniversal(const Time time) { return time.time_since_epoch().count(); }
+std::ostream& operator<<(std::ostream& os, const Time time) {
+  os << std::to_string(ToUniversal(time));
+  return os;
 }
 
-
+bool WriteOutPutImu(std::string outdir, const rosbag::MessageInstance& msg) {
+  if (msg.isType<sensor_msgs::Imu>()) {
+    std::string topic2dir = msg.getTopic();
+    std::fstream file(outdir, std::ios_base::out | std::ios_base::app);
+    auto imu_msg = msg.instantiate<sensor_msgs::Imu>();
+    file << FromRos(imu_msg->header.stamp) << " " << imu_msg->angular_velocity.x
+         << " " << imu_msg->angular_velocity.y << " "
+         << imu_msg->angular_velocity.z << " " << imu_msg->linear_acceleration.x
+         << " " << imu_msg->linear_acceleration.y << " "
+         << imu_msg->linear_acceleration.z << std::endl;
+  }
+  return true;
+}
 
 void run(const rosbag::Bag& input_bag,const std::string& output_dir)
 {
@@ -84,7 +114,8 @@ void run(const rosbag::Bag& input_bag,const std::string& output_dir)
     if (++ration < 30) continue;
     ration = 0;
     rosbag::MessageInstance msg = *view_iterator;
-    WriteOutPutImage(output_dir, msg);
+    WriteOutPutImu(output_dir + ".imu_data.txt", msg);
+    // WriteOutPutImage(output_dir, msg);
   }
 }
 

@@ -160,6 +160,7 @@ add_executable(${PROJECT_NAME}_view_odom_node src/rosbag_node.cpp)
 add_executable(${PROJECT_NAME}_merge_rosbag src/write_tf_to_rosbag.cpp)
 add_executable(view_groudtrue_mult  src/view_groudtrue_multypath.cpp)
 add_executable(rosba_extract src/rosbag_extract.cpp)
+add_executable(pubodom_frome_bag src/pubodom_frome_bag.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -177,6 +178,12 @@ target_link_libraries(${PROJECT_NAME}_keybord
   ${catkin_LIBRARIES}
   ${GFLAGS_LIBRARIES}
  )
+target_link_libraries(pubodom_frome_bag
+  ${GLOG_LIBRARIES}
+  ${EIGEN3_LIBS}
+  ${catkin_LIBRARIES}
+  ${GFLAGS_LIBRARIES}
+ ) 
 target_link_libraries(${PROJECT_NAME}_hw_node
   ${GLOG_LIBRARIES}
   ${EIGEN3_LIBS}
