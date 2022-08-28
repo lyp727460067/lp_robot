@@ -16,8 +16,8 @@
    <rosparam file="$(find lp_robot)/param/global_costmap_params.yaml" command="load" />
 
 
-   <rosparam file="$(find lp_robot)/param/dwa_local_planner_params.yaml" command="load" />
-<!--     <rosparam file="$(find lp_robot)/param/teb_local_planner_params.yaml" command="load" />-->
+   <!-- <rosparam file="$(find lp_robot)/param/dwa_local_planner_params.yaml" command="load" /> -->
+    <rosparam file="$(find lp_robot)/param/teb_local_planner_params.yaml" command="load" />
     <rosparam file="$(find lp_robot)/param/move_base_params.yaml" command="load" />
     <rosparam file="$(find lp_robot)/param/global_planner_params.yaml" command="load" />
     <!--<rosparam file="$(find lp_robot)/param/navfn_global_planner_params.yaml" command="load" />-->
@@ -31,8 +31,8 @@
 		<param name="planner_frequency" value="1.0" />
 		<param name="planner_patience" value="5.0" />
 
-		<!--<param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />-->
-		<param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />
+		<param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS" />
+		<!-- <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" /> -->
 		<param name="controller_frequency" value="5.0" />
 		<param name="controller_patience" value="15.0" />
 

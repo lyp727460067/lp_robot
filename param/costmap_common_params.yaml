@@ -19,17 +19,17 @@ obstacle_layer:
   raytrace_range: 10.0
   origin_z: 0.0
   z_resolution: 0.2
-  z_voxels: 4  #注意雷达高度如果高于这个的hua会 报告下面这个错
+  z_voxels: 40  #注意雷达高度如果高于这个的hua会 报告下面这个错
   #The origin for the sensor at (0.20, 0.03, 0.44) is out of map bound
   publish_voxel_map: true
-  observation_sources:  scan dpoint
+  observation_sources:  scan 
   scan:
-    data_type:  PointCloud2
-    topic: /scan_matched_points2
+    data_type:  LaserScan
+    topic: /scan
     marking: true
     clearing: true
-    min_obstacle_height: -0.05
-    max_obstacle_height: 1.35
+    min_obstacle_height: 0.05
+    max_obstacle_height: 0.35
   dpoint:
     data_type: PointCloud2
     topic: /camera/depth/color/points
@@ -53,6 +53,6 @@ inflation_layer:
   inflation_radius:     0.1 # max. distance from an obstacle at which costs are incurred for planning paths.
 
 static_layer:
-  enabled:              true
+  enabled:              false
   
 
