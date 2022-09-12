@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(lp_robot)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
@@ -150,7 +150,9 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable( ${PROJECT_NAME}_keybord
 src/keyboard.cpp)
-set(hw_src src/hw_node.cpp src/dev_socket.cpp src/dev_socket.h src/socket_wrapper.cpp src/socket_wrapper.h)
+set(hw_src src/hw_node.cpp src/dev_socket.cpp src/dev_socket.h src/socket_wrapper.cpp src/socket_wrapper.h 
+src/dev_seria.cpp src/seria_wrapper.cpp
+)
 add_executable(${PROJECT_NAME}_hw_node ${hw_src})
 add_executable(${PROJECT_NAME}_mutytarget_node src/mult_point_nav.cpp)
 add_executable(${PROJECT_NAME}_view_odom_node src/rosbag_node.cpp)

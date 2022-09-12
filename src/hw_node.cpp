@@ -13,16 +13,23 @@
 #include <thread>
 #include <vector>
 
-#include "dev_socket.h"
+// #include "dev_socket.h"
 #include "geometry_msgs/Transform.h"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 #include "nav_msgs/Odometry.h"
 #include "tf2_ros/transform_listener.h"
+#include "dev_seria.h"
+#include "glog/logging.h"
 using namespace lprobot;
 using namespace device;
 
+
+
+
 namespace {
+
+
 std::mutex SendMutex;
 std::condition_variable SendCondition;
 bool kill_thread = false;
@@ -46,50 +53,108 @@ void termin_out(int sig) {
 }
 
 }  // namespace
-struct HwData {
-  float x;
-  float y;
-  float theta;
-  float v;
-  float w;
-};
-struct HwCmd {
-  float w;
-  float v;
+struct MowerData {
+  uint16_t cmd;
+  uint16_t state;
+  float l_encode;
+  float r_encode;
+  float ultra_left_front;
+  float ultra_right_front;
+  float ultra_back;
 };
 
-HwCmd velocity_msg;
+struct MowerSendData {
+  uint16_t cmd;
+  float v;
+  float w;
+};
+
+MowerSendData mower_send_data;
 bool velocity_recive_flag = false;
 void VelocityCallBack(const geometry_msgs::TwistConstPtr& msg) {
   std::lock_guard<std::mutex> mtx(SendMutex);
-  velocity_msg.v = static_cast<float>(msg->linear.x);
-  velocity_msg.w = static_cast<float>(msg->angular.z);
+  mower_send_data.cmd = 0x01;
+  mower_send_data.v = static_cast<float>(msg->linear.x);
+  mower_send_data.w = static_cast<float>(msg->angular.z);
   velocity_recive_flag = true;
-  //SendCondition.notify_all();
+  // SendCondition.notify_all();
 }
 
-void PubHwData(const HwData& hw_data) {
-  nav_msgs::Odometry odom_msg;
-  odom_msg.pose.pose.position.x = hw_data.x;
-  odom_msg.pose.pose.position.y = hw_data.y;
-  odom_msg.pose.pose.position.z = 0;
-  auto q = tf::Quaternion(0, 0, hw_data.theta * TFSIMD_RADS_PER_DEG);
-  odom_msg.pose.pose.orientation.x = q.getX();
-  odom_msg.pose.pose.orientation.y = q.getY();
-  odom_msg.pose.pose.orientation.z = q.getZ();
-  odom_msg.pose.pose.orientation.w = q.getW();
-  odom_msg.twist.twist.angular.x = hw_data.v;
-  odom_msg.twist.twist.angular.y = hw_data.w;
-  odom_msg.twist.twist.angular.x = 0;
+// void PubHwData(const HwData& hw_data) {
+//   nav_msgs::Odometry odom_msg;
+//   odom_msg.pose.pose.position.x = hw_data.x;
+//   odom_msg.pose.pose.position.y = hw_data.y;
+//   odom_msg.pose.pose.position.z = 0;
+//   auto q = tf::Quaternion(0, 0, hw_data.theta * TFSIMD_RADS_PER_DEG);
+//   odom_msg.pose.pose.orientation.x = q.getX();
+//   odom_msg.pose.pose.orientation.y = q.getY();
+//   odom_msg.pose.pose.orientation.z = q.getZ();
+//   odom_msg.pose.pose.orientation.w = q.getW();
+//   odom_msg.twist.twist.angular.x = hw_data.v;
+//   odom_msg.twist.twist.angular.y = hw_data.w;
+//   odom_msg.twist.twist.angular.x = 0;
 
-  odom_msg.child_frame_id = "base_link";
-  odom_msg.header.frame_id = "odom";
-  odom_msg.header.stamp = ros::Time::now();
-  odom_pub.publish(odom_msg);
+//   odom_msg.child_frame_id = "base_link";
+//   odom_msg.header.frame_id = "odom";
+//   odom_msg.header.stamp = ros::Time::now();
+//   odom_pub.publish(odom_msg);
+// }
+
+
+
+
+
+
+
+
+ 
+std::vector<uint8_t> ToUartData(const MowerSendData& data) {
+  std::vector<uint8_t> result;
+  std::vector<uint8_t> temp{100, 0};
+  LOG(INFO)<<data.v;
+  memcpy((void*)temp.data(), (void*)&data, sizeof(MowerSendData));
+  result.push_back(0x55);
+  result.push_back(0xaa);
+  char lenth_temp[4];
+  int lenth = 6 + sizeof(MowerSendData);
+  LOG(INFO) << lenth;
+  memcpy((void*)lenth_temp, (void*)&lenth, 4);
+  for (int i = 0; i < 4; i++) {
+    result.push_back(lenth_temp[i]);
+  }
+  std::cout<<std::hex;
+  for (int i = 0; i < sizeof(MowerSendData); i++) {
+    std::cout<<int(temp[i]);
+    result.push_back(temp[i]);
+  }
+  std::cout<<std::endl;
+  result.push_back(0x44);
+  return result;
 }
+
+std::ostream &operator<<(std::ostream& out, const MowerData& data) {
+  out << "mower_data: "
+      << "\n"
+      << "cmd : " << data.cmd << " state: " << data.state << "\n"
+      << "encode : " << data.l_encode << " " << data.r_encode << "\n"
+      << "utrl: " << data.ultra_left_front << " " << data.ultra_right_front
+      << " " << data.ultra_back << std::endl;
+  return out;
+}
+
+
+
+
+
 
 int main(int argc, char* argv[]) {
   ros::init(argc, argv, "odometry_publisher");
+   geometry_msgs::TransformStamped transform;
+   nav_msgs::Odometry odom;
+   odom.pose.pose.position.x  = transform.transform.translation.x;
+   odom.pose.pose.position.y  = transform.transform.translation.y;
+   odom.pose.pose.position.z  = transform.transform.translation.z;
+   odom.pose.pose.orientation.w  = transform.transform.rotation.w;
 
   google::InitGoogleLogging(argv[0]);
   google::ParseCommandLineFlags(&argc, &argv, true);
@@ -105,33 +170,37 @@ int main(int argc, char* argv[]) {
 
   signal(SIGINT, termin_out);
   // signal(SIGTERM, termin_out);
-  HwData hw_data;
+  MowerData mower_data;
+  std::pair< std::string,int> port("/dev/ttyUSB0",115200);
   try {
-    Device.emplace_back(
-        new internal::DevSocket(host_ip,[&hw_data](std::vector<uint8_t>&& d) {
-          // std::copy(d.begin(), d.end(),
-          //          std::ostream_iterator<uint8_t>(std::cout, " "));
-          memcpy( (void*)&hw_data, (void*)d.data(),d.size());
-          PubHwData(hw_data);
+    Device.emplace_back(new internal::DevSeriWithDataProcess(
+        port, [&mower_data](std::vector<uint8_t>&& d) {
+          std::cout << std::hex;
+          std::copy(d.begin(), d.end(),
+                    std::ostream_iterator<int>(std::cout, " "));
+          std::cout << std::endl;
+          memcpy((void*)&mower_data, (void*)d.data(), d.size());
+          LOG(INFO)<<mower_data;
         }));
   } catch (const std::string s) {
     LOG(INFO) << "Devive creat err" << s;
     return EXIT_FAILURE;
   }
-
+  // MowerSendData mower_send_data;
   while (!kill_thread) {
     //  std::unique_lock<std::mutex> mtx(SendMutex);
     //  SendCondition.wait(mtx,[](){ return velocity_recive_flag; });
-
     if (velocity_recive_flag) {
       velocity_recive_flag = false;
       for (auto& dev : Device) {
-        std::vector<uint8_t> send_data(8,0);
-       // LOG(INFO) << "start pub_recive cmd";
-        memcpy((void*)send_data.data(),(void*)&velocity_msg,
-               sizeof(velocity_msg));
-        LOG(INFO)<<"send_data with v= "<<velocity_msg.v<<" and w = "<<velocity_msg.w;
+        // mower_send_data.cmd = 0x01;
+        // mower_send_data.v = 0;
+        // mower_send_data.w = 0.3;
+        auto send_data = ToUartData(mower_send_data);
+        LOG(INFO) << "send_data with v= " << mower_send_data.v
+                  << " and w = " << mower_send_data.w;
         dev->tx(send_data);
+        // LOG(INFO)<<send_data.size();
         send_data.clear();
       }
     }
@@ -143,3 +212,67 @@ int main(int argc, char* argv[]) {
   ros::shutdown();
   exit(0);
 }
+
+
+
+// int main(int argc, char* argv[]) {
+//   ros::init(argc, argv, "odometry_publisher");
+//    geometry_msgs::TransformStamped transform;
+//    nav_msgs::Odometry odom;
+//    odom.pose.pose.position.x  = transform.transform.translation.x;
+//    odom.pose.pose.position.y  = transform.transform.translation.y;
+//    odom.pose.pose.position.z  = transform.transform.translation.z;
+//    odom.pose.pose.orientation.w  = transform.transform.rotation.w;
+
+//   google::InitGoogleLogging(argv[0]);
+//   google::ParseCommandLineFlags(&argc, &argv, true);
+//   FLAGS_logtostderr = 1;      //是否打印到控制台
+//   FLAGS_alsologtostderr = 1;  //打印到日志同时是否打印到控制
+//   LOG(INFO) << "lp_hw_main start";
+//   ros::NodeHandle ph;
+//   odom_pub = ph.advertise<nav_msgs::Odometry>("/odom", 10);
+//   ros::Subscriber vel_sub =
+//       ph.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, &VelocityCallBack);
+
+//   std::vector<std::unique_ptr<DevInterface>> Device;
+
+//   signal(SIGINT, termin_out);
+//   // signal(SIGTERM, termin_out);
+//   HwData hw_data;
+//   try {
+//     Device.emplace_back(
+//         new internal::DevSocket(host_ip,[&hw_data](std::vector<uint8_t>&& d) {
+//           // std::copy(d.begin(), d.end(),
+//           //          std::ostream_iterator<uint8_t>(std::cout, " "));
+//           memcpy( (void*)&hw_data, (void*)d.data(),d.size());
+//           PubHwData(hw_data);
+//         }));
+//   } catch (const std::string s) {
+//     LOG(INFO) << "Devive creat err" << s;
+//     return EXIT_FAILURE;
+//   }
+
+//   while (!kill_thread) {
+//     //  std::unique_lock<std::mutex> mtx(SendMutex);
+//     //  SendCondition.wait(mtx,[](){ return velocity_recive_flag; });
+
+//     if (velocity_recive_flag) {
+//       velocity_recive_flag = false;
+//       for (auto& dev : Device) {
+//         std::vector<uint8_t> send_data(8,0);
+//        // LOG(INFO) << "start pub_recive cmd";
+//         memcpy((void*)send_data.data(),(void*)&velocity_msg,
+//                sizeof(velocity_msg));
+//         LOG(INFO)<<"send_data with v= "<<velocity_msg.v<<" and w = "<<velocity_msg.w;
+//         dev->tx(send_data);
+//         send_data.clear();
+//       }
+//     }
+//     std::this_thread::sleep_for(std::chrono::milliseconds(1));
+//     ros::spinOnce();
+//   }
+
+//   LOG(INFO) << " end hw_node";
+//   ros::shutdown();
+//   exit(0);
+// }

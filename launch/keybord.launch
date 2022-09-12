@@ -2,8 +2,8 @@
 <arg name="cmd_topic" default="cmd_vel" />
 <arg name="walk_vel"  default="0.2" />
 <arg name="run_vel"   default="0.4"/>
-<arg name="yaw_rate"   default="0.2" />
-<arg name="yaw_rate_run"   default="0.4" />
+<arg name="yaw_rate"   default="0.4" />
+<arg name="yaw_rate_run"   default="0.8" />
 <arg name="hz"  					 default="50" />
 <node pkg="lp_robot" type="lp_robot_keybord" name="lp_robot">
 	<remap from="cmd_vel" to="$(arg cmd_topic)" />

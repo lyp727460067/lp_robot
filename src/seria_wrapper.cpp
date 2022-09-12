@@ -6,14 +6,15 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-
+#include "glog/logging.h"
 #include <iostream>
-
+#include <termios.h>
 namespace lprobot {
 namespace device {
 namespace internal {
 
 namespace linx_seria {
+struct termios orgopt_,curopt_;
 int Create(const char *port, int baut) {
   char buf[1024];
   int crport_fd_ = -1;
@@ -29,11 +30,10 @@ int Create(const char *port, int baut) {
   }
 
   fcntl(crport_fd_, F_SETFL, FNDELAY);
-
   tcgetattr(crport_fd_, &orgopt_);
   tcgetattr(crport_fd_, &curopt_);
   speed_t CR_BAUDRATE;
-  switch (baudrate) {
+  switch (baut) {
     case 9600:
       CR_BAUDRATE = B9600;
       break;
@@ -80,8 +80,8 @@ int Writen(int fd, const char *data, int len) {
   ret = static_cast<int>(::write(fd, data, len));
   return ret;
 }
-int Readn(int fd, const char *buf, int n, const uint16_t &timeout_ms = 50,
-          int bardrate_ = 115200) {
+int Readn(int fd, char *buf, int n, const int&timeout_ms ,
+          int bardrate_ ) {
   int r_ret = 0, s_ret = 0;
   int len = n;
   uint8_t *t_buf;
@@ -92,12 +92,12 @@ int Readn(int fd, const char *buf, int n, const uint16_t &timeout_ms = 50,
   timeout.tv_sec = timeout_ms / 1000;
   timeout.tv_usec = (timeout_ms % 1000) * 1000;
   int length = 0;
-
+  // buf[0]  =10;
   while (true) {
     FD_ZERO(&read_fd_set);
     FD_SET(fd, &read_fd_set);
-
     s_ret = select(FD_SETSIZE, &read_fd_set, NULL, NULL, &timeout);
+    // LOG(INFO)<<"start reading"<<s_ret;;
     if (s_ret < 0) {
       printf("-------select error------------");
       free(t_buf);
@@ -116,13 +116,15 @@ int Readn(int fd, const char *buf, int n, const uint16_t &timeout_ms = 50,
           FD_CLR(fd, &read_fd_set);
           return -1;
         }
+        // LOG(INFO)<<length;
         if (length >= (size_t)len) {
           r_ret = ::read(fd, t_buf, len);
-          if (r_ret == len)
+          //  LOG(INFO)<<r_ret;
+          if (r_ret == len) {
             for (int i = 0; i < len; i++) {
               buf[i] = t_buf[i];
             }
-          // memcpy(buf,t_buf,size_of_path);
+          }
           free(t_buf);
           FD_CLR(fd, &read_fd_set);
           return r_ret;
