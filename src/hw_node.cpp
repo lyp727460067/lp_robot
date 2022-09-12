@@ -21,10 +21,11 @@
 #include "tf2_ros/transform_listener.h"
 #include "dev_seria.h"
 #include "glog/logging.h"
+#include "Eigen/Core"
 using namespace lprobot;
 using namespace device;
 
-
+#define ENABLE_ODOM_TF
 
 
 namespace {
@@ -56,6 +57,7 @@ void termin_out(int sig) {
 struct MowerData {
   uint16_t cmd;
   uint16_t state;
+  float time;
   float l_encode;
   float r_encode;
   float ultra_left_front;
@@ -79,34 +81,6 @@ void VelocityCallBack(const geometry_msgs::TwistConstPtr& msg) {
   velocity_recive_flag = true;
   // SendCondition.notify_all();
 }
-
-// void PubHwData(const HwData& hw_data) {
-//   nav_msgs::Odometry odom_msg;
-//   odom_msg.pose.pose.position.x = hw_data.x;
-//   odom_msg.pose.pose.position.y = hw_data.y;
-//   odom_msg.pose.pose.position.z = 0;
-//   auto q = tf::Quaternion(0, 0, hw_data.theta * TFSIMD_RADS_PER_DEG);
-//   odom_msg.pose.pose.orientation.x = q.getX();
-//   odom_msg.pose.pose.orientation.y = q.getY();
-//   odom_msg.pose.pose.orientation.z = q.getZ();
-//   odom_msg.pose.pose.orientation.w = q.getW();
-//   odom_msg.twist.twist.angular.x = hw_data.v;
-//   odom_msg.twist.twist.angular.y = hw_data.w;
-//   odom_msg.twist.twist.angular.x = 0;
-
-//   odom_msg.child_frame_id = "base_link";
-//   odom_msg.header.frame_id = "odom";
-//   odom_msg.header.stamp = ros::Time::now();
-//   odom_pub.publish(odom_msg);
-// }
-
-
-
-
-
-
-
-
  
 std::vector<uint8_t> ToUartData(const MowerSendData& data) {
   std::vector<uint8_t> result;
@@ -143,9 +117,51 @@ std::ostream &operator<<(std::ostream& out, const MowerData& data) {
 }
 
 
+double odom_theta;
+constexpr double kWheelLenth = 0.22;
+Eigen::Vector2d odom_translation;
 
+nav_msgs::Odometry ToOdomtry(const MowerData& data) {
+  static MowerData old_data = data;
+  const double l_encode = data.l_encode - old_data.l_encode;
+  const double r_encode = data.r_encode - old_data.r_encode;
+  old_data = data;
+  float odom_v = (r_encode + l_encode) * 0.5f;  // mm/s
+  const double angle_delta = (r_encode - l_encode) / (2 * kWheelLenth);
+  const double odom_deltax = odom_v * cos(odom_theta) ;
+  const double odom_deltay = odom_v * sin(odom_theta) ;
+  odom_theta += angle_delta;
+  odom_translation.x() += odom_deltax;
+  odom_translation.y() += odom_deltay;
 
+  nav_msgs::Odometry odom_msg;
+  odom_msg.pose.pose.position.x = odom_translation.x();
+  odom_msg.pose.pose.position.y = odom_translation.y();
+  odom_msg.pose.pose.position.z = 0;
+  auto q = tf::Quaternion(0, 0, odom_theta);
+  odom_msg.pose.pose.orientation.x = q.getX();
+  odom_msg.pose.pose.orientation.y = q.getY();
+  odom_msg.pose.pose.orientation.z = q.getZ();
+  odom_msg.pose.pose.orientation.w = q.getW();
+  odom_msg.twist.twist.angular.x = 0;
+  odom_msg.twist.twist.angular.y = 0;
+  odom_msg.twist.twist.angular.x = 0;
+  return odom_msg;
+}
 
+void PubMowerData(const MowerData& mower_data) {
+  nav_msgs::Odometry odom_msg = ToOdomtry(mower_data);
+  odom_msg.child_frame_id = "base_link";
+  odom_msg.header.frame_id = "odom";
+  odom_msg.header.stamp = ros::Time::now();
+  odom_pub.publish(odom_msg);
+
+#ifdef ENABLE_ODOM_TF
+ 
+
+#endif
+
+}
 
 int main(int argc, char* argv[]) {
   ros::init(argc, argv, "odometry_publisher");
@@ -180,6 +196,7 @@ int main(int argc, char* argv[]) {
                     std::ostream_iterator<int>(std::cout, " "));
           std::cout << std::endl;
           memcpy((void*)&mower_data, (void*)d.data(), d.size());
+          PubMowerData(mower_data) ;
           LOG(INFO)<<mower_data;
         }));
   } catch (const std::string s) {
