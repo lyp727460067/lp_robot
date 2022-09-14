@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   rosbag
   nav_msgs
+  tf
 )
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Cmake)
 ## Find catkin macros and libraries

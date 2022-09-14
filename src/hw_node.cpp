@@ -22,6 +22,7 @@
 #include "dev_seria.h"
 #include "glog/logging.h"
 #include "Eigen/Core"
+#include <tf/transform_broadcaster.h>
 using namespace lprobot;
 using namespace device;
 
@@ -57,7 +58,6 @@ void termin_out(int sig) {
 struct MowerData {
   uint16_t cmd;
   uint16_t state;
-  float time;
   float l_encode;
   float r_encode;
   float ultra_left_front;
@@ -118,7 +118,7 @@ std::ostream &operator<<(std::ostream& out, const MowerData& data) {
 
 
 double odom_theta;
-constexpr double kWheelLenth = 0.22;
+constexpr double kWheelLenth = 0.27;
 Eigen::Vector2d odom_translation;
 
 nav_msgs::Odometry ToOdomtry(const MowerData& data) {
@@ -126,8 +126,9 @@ nav_msgs::Odometry ToOdomtry(const MowerData& data) {
   const double l_encode = data.l_encode - old_data.l_encode;
   const double r_encode = data.r_encode - old_data.r_encode;
   old_data = data;
+  LOG(INFO)<< l_encode<<" "<<r_encode;
   float odom_v = (r_encode + l_encode) * 0.5f;  // mm/s
-  const double angle_delta = (r_encode - l_encode) / (2 * kWheelLenth);
+  const double angle_delta = (r_encode - l_encode) / ( kWheelLenth);
   const double odom_deltax = odom_v * cos(odom_theta) ;
   const double odom_deltay = odom_v * sin(odom_theta) ;
   odom_theta += angle_delta;
@@ -148,7 +149,7 @@ nav_msgs::Odometry ToOdomtry(const MowerData& data) {
   odom_msg.twist.twist.angular.x = 0;
   return odom_msg;
 }
-
+tf::TransformBroadcaster* tf_broadcaster;
 void PubMowerData(const MowerData& mower_data) {
   nav_msgs::Odometry odom_msg = ToOdomtry(mower_data);
   odom_msg.child_frame_id = "base_link";
@@ -157,10 +158,19 @@ void PubMowerData(const MowerData& mower_data) {
   odom_pub.publish(odom_msg);
 
 #ifdef ENABLE_ODOM_TF
- 
-
+  geometry_msgs::TransformStamped tf_trans;
+  tf_trans.header.stamp = ros::Time::now();
+  tf_trans.header.frame_id = "map";
+  tf_trans.child_frame_id = "base_link";
+  tf_trans.transform.translation.x = odom_msg.pose.pose.position.x;
+  tf_trans.transform.translation.y = odom_msg.pose.pose.position.y;
+  tf_trans.transform.translation.z = odom_msg.pose.pose.position.z;
+  tf_trans.transform.rotation.x = odom_msg.pose.pose.orientation.x;
+  tf_trans.transform.rotation.y = odom_msg.pose.pose.orientation.y;
+  tf_trans.transform.rotation.z = odom_msg.pose.pose.orientation.z;
+  tf_trans.transform.rotation.w = odom_msg.pose.pose.orientation.w;
+  tf_broadcaster->sendTransform(tf_trans);
 #endif
-
 }
 
 int main(int argc, char* argv[]) {
@@ -171,34 +181,34 @@ int main(int argc, char* argv[]) {
    odom.pose.pose.position.y  = transform.transform.translation.y;
    odom.pose.pose.position.z  = transform.transform.translation.z;
    odom.pose.pose.orientation.w  = transform.transform.rotation.w;
+   tf_broadcaster = new tf::TransformBroadcaster;
+   google::InitGoogleLogging(argv[0]);
+   google::ParseCommandLineFlags(&argc, &argv, true);
+   FLAGS_logtostderr = 1;      //是否打印到控制台
+   FLAGS_alsologtostderr = 1;  //打印到日志同时是否打印到控制
+   LOG(INFO) << "lp_hw_main start";
+   ros::NodeHandle ph;
+   odom_pub = ph.advertise<nav_msgs::Odometry>("/odom", 10);
+   ros::Subscriber vel_sub =
+       ph.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, &VelocityCallBack);
 
-  google::InitGoogleLogging(argv[0]);
-  google::ParseCommandLineFlags(&argc, &argv, true);
-  FLAGS_logtostderr = 1;      //是否打印到控制台
-  FLAGS_alsologtostderr = 1;  //打印到日志同时是否打印到控制
-  LOG(INFO) << "lp_hw_main start";
-  ros::NodeHandle ph;
-  odom_pub = ph.advertise<nav_msgs::Odometry>("/odom", 10);
-  ros::Subscriber vel_sub =
-      ph.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, &VelocityCallBack);
+   std::vector<std::unique_ptr<DevInterface>> Device;
 
-  std::vector<std::unique_ptr<DevInterface>> Device;
-
-  signal(SIGINT, termin_out);
-  // signal(SIGTERM, termin_out);
-  MowerData mower_data;
-  std::pair< std::string,int> port("/dev/ttyUSB0",115200);
-  try {
-    Device.emplace_back(new internal::DevSeriWithDataProcess(
-        port, [&mower_data](std::vector<uint8_t>&& d) {
-          std::cout << std::hex;
-          std::copy(d.begin(), d.end(),
-                    std::ostream_iterator<int>(std::cout, " "));
-          std::cout << std::endl;
-          memcpy((void*)&mower_data, (void*)d.data(), d.size());
-          PubMowerData(mower_data) ;
-          LOG(INFO)<<mower_data;
-        }));
+   signal(SIGINT, termin_out);
+   // signal(SIGTERM, termin_out);
+   MowerData mower_data;
+   std::pair<std::string, int> port("/dev/ttyUSB0", 115200);
+   try {
+     Device.emplace_back(new internal::DevSeriWithDataProcess(
+         port, [&mower_data](std::vector<uint8_t>&& d) {
+           std::cout << std::hex;
+           std::copy(d.begin(), d.end(),
+                     std::ostream_iterator<int>(std::cout, " "));
+           std::cout << std::endl;
+           memcpy((void*)&mower_data, (void*)d.data(), d.size());
+           PubMowerData(mower_data);
+           LOG(INFO) << mower_data;
+         }));
   } catch (const std::string s) {
     LOG(INFO) << "Devive creat err" << s;
     return EXIT_FAILURE;
