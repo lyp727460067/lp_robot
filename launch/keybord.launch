@@ -5,7 +5,7 @@
 <arg name="yaw_rate"   default="0.2" />
 <arg name="yaw_rate_run"   default="0.8" />
 <arg name="hz"  					 default="50" />
-<node pkg="lp_robot" type="lp_robot_keybord" name="lp_robot">
+<node pkg="lp_robot" type="lp_robot_keybord" name="lp_robot" output = "screen">
 	<remap from="cmd_vel" to="$(arg cmd_topic)" />
 	<param name="hz" value="$(arg hz)"/>
 	<param name="walk_vel" value="$(arg walk_vel)"/>

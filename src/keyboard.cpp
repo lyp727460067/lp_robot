@@ -53,7 +53,7 @@
 #include <stdlib.h>
 #include <sys/poll.h>
 #include <termios.h>
-
+#include "sensor_msgs/Joy.h"
 #include <boost/thread/thread.hpp>
 #define KEYCODE_W 0x77
 #define KEYCODE_A 0x61
@@ -72,15 +72,18 @@ class SmartCarKeyboardTeleopNode {
   double run_vel_;
   double yaw_rate_;
   double yaw_rate_run_;
-
+  sensor_msgs::Joy joy_;
   geometry_msgs::Twist cmdvel_;
+
   ros::NodeHandle n_;
   ros::Publisher pub_;
+  ros::Publisher pub_joy_;
 
  public:
   boost::thread t;
   SmartCarKeyboardTeleopNode() {
     pub_ = n_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+    pub_joy_ = n_.advertise<sensor_msgs::Joy>("/joy", 1);
 
     ros::NodeHandle n_private("~");
     n_private.param("walk_vel", walk_vel_, 0.5);
@@ -169,7 +172,8 @@ void SmartCarKeyboardTeleopNode::keyboardLoop() {
   bool pub = false;
   int speed = 0;
   int turn = 0;
-
+  joy_.buttons.resize(8);
+  std::cout<<  joy_.buttons.size()<<std::endl;
   /**
    * 从终端中获取按键
    * int tcgetattr(int fd, struct termios *termios_p);
@@ -319,11 +323,44 @@ void SmartCarKeyboardTeleopNode::keyboardLoop() {
         // turn = 0;
         // dirty = false;
     }
+    bool pub_joy = false;
+    switch (c) {
+      case 'b':
+      case 'B':
+        pub_joy = true;
+        joy_.buttons[1] = 1;
+        break;
+      case 'y':
+      case 'Y':
+
+        pub_joy = true;
+        joy_.buttons[3] = 1;
+        break;
+      case 'x':
+      case 'X':
+        joy_.buttons[2] = 1;
+        pub_joy = true;
+        break;
+      case 't':
+      case 'T':
+        joy_.buttons[7] = 1;
+        pub_joy = true;
+        break;
+      default:
+        break;
+    }
+
     if (pub) {
       pub = false;
       cmdvel_.linear.x = speed * max_tv;
       cmdvel_.angular.z = turn * max_rv;
       pub_.publish(cmdvel_);
+    }
+    if (pub_joy) {
+      joy_.header.frame_id = "base";
+      joy_.header.stamp= ros::Time::now();
+      
+      pub_joy_.publish(joy_);
     }
   }
 }
