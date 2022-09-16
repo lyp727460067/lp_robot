@@ -18,13 +18,14 @@ namespace internal {
 
 
 template class DevSeri<CheiryDataProcess>;
+template class DevSeri<RtkDataProcess>;
 
 template <typename DataProcess>
 template <typename Data>
 class DevSeri<DataProcess>::Serio {
  public:
-  Serio(std::pair<std::string, int> para, CallBack callback)
-      : result_fun_(callback) {
+  Serio(std::pair<std::string, int> para, CallBack callback,int lenth=1)
+      : result_fun_(callback),process_lenth_(lenth) {
     int try_time = try_times_;
     int fd;
     while (try_time) {
@@ -52,8 +53,9 @@ class DevSeri<DataProcess>::Serio {
   }
 
   void update() {
+
+    std::vector<uint8_t> q_data;
     while (!kill_thread_) {
-      std::vector<uint8_t> q_data;
       std::vector<uint8_t> data(process_lenth_,0);  //////
       int ret = linx_seria::Readn(fd_,(char*)data.data(), process_lenth_);
       if (ret <= 0) {
@@ -86,7 +88,7 @@ class DevSeri<DataProcess>::Serio {
   std::unique_ptr<std::thread> thread_;
   constexpr static uint32_t try_times_ = 100;
   int loop_peri_ =10;
-  int process_lenth_=31;
+  int process_lenth_;
   bool kill_thread_ = false;
   CallBack result_fun_ = nullptr;
   Data data_process_;
@@ -94,8 +96,9 @@ class DevSeri<DataProcess>::Serio {
 };
 template <typename DataProcess>
 DevSeri<DataProcess>::DevSeri(const std::pair<std::string, int>& para,
-                              CallBack callback, int peri, int pro_len) {
-  serio_impl_ = std::make_unique<Serio<DataProcess>>(para, std::move(callback));
+                              CallBack callback, int pro_len, int peri) {
+  serio_impl_ =
+      std::make_unique<Serio<DataProcess>>(para, std::move(callback), pro_len);
 }
 
 template <typename DataProcess>
