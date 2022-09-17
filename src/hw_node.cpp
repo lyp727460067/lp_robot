@@ -212,7 +212,7 @@ int main(int argc, char* argv[]) {
            memcpy((void*)&mower_data, (void*)d.data(), d.size());
            PubMowerData(mower_data);
            LOG(INFO) << mower_data;
-         },54));
+         },31));
   } catch (const std::string s) {
     LOG(INFO) << "Devive creat err" << s;
     return EXIT_FAILURE;
