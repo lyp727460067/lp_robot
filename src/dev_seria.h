@@ -11,33 +11,132 @@ namespace lprobot {
 namespace device {
 namespace internal {
 
-class BaterryDataProcess {
- public:
-  std::vector<uint8_t> operator()(std::vector<uint8_t>&){
-      //   auto it = std::find(d.begin(), d.end(), 'c');
-      //   std::vector<uint8_t> resul;
 
-      //   if (it == d.end()) {
-      //     return resul;
-      //   }
-      //   auto cit = it;
-      //   if (*++it != 'm') {
-      //     return resul;
-      //   }
-      //   if (*++it != 0x0d) {
-      //     return resul;
-      //   }
-      //   if (*++it != 0x0a) {
-      //     return resul;
-      //   }
-      //   std::string string_value;
-      //   for (auto p = d.begin(); p != cit; ++p) {
-      //     string_value.push_back(*p);
-      //   }
-      //   return resul;
-      // }
+
+
+class RtkDataProcess {
+ public:
+  struct GpsType{
+    double lat;
+    double log;
+    double alt;
   };
+  void Log(char c) {
+    std::string test;
+    test.push_back(c);
+    std::cout << test << std::endl;
+  }
+  std::vector<uint8_t> operator()(std::vector<uint8_t>& d) {
+    auto it = std::find(d.begin(), d.end(), 'G');
+    std::vector<uint8_t> resul;
+    if (it == d.end()) {
+      return resul;
+    }
+    it = std::find(it, d.end(), ',');
+    if (it == d.end()) {
+      return resul;
+    }
+    if (*std::prev(it) != 'A') {
+      d.erase(d.begin(), it);
+      return resul;
+    }
+    //
+    auto Tostring = [&](std::vector<uint8_t>::iterator& it) -> std::string {
+      std::string result;
+      for (; it != d.end(); ++it) {
+        if (*it != ',') {
+          result.push_back(*it);
+        } else {
+          return result;
+        }
+      }
+      return {};
+    };
+    //
+    auto ItPreIsValid = [&](std::vector<uint8_t>::iterator& it) {
+      if (it == d.end()) return false;
+      ++it;
+      if (it == d.end()) return false;
+      return true;
+    };
+    if (!ItPreIsValid(it)) return resul;//到 ,
+    std::string utc = Tostring(it);
+    if (!ItPreIsValid(it)) return resul;
+    std::string lat = Tostring(it);
+    if (!ItPreIsValid(it)) return resul;
+    if (!ItPreIsValid(it)) return resul;
+    if (!ItPreIsValid(it)) return resul;
+    std::string lon =Tostring(it);
+    if (!ItPreIsValid(it)) return resul;
+    if (!ItPreIsValid(it)) return resul;
+    if (!ItPreIsValid(it)) return resul;
+    if (!ItPreIsValid(it)) return resul;
+    int qual = *std::prev(it);
+    if (!ItPreIsValid(it)) return resul;
+    std::string stat = Tostring(it);
+    if (!ItPreIsValid(it)) return resul;
+    std::string factor = Tostring(it);
+    // if (factor.empty()) return resul;
+    if (!ItPreIsValid(it)) return resul;
+    std::string alt = Tostring(it);
+    if (!ItPreIsValid(it)) return resul;//m
+    if (!ItPreIsValid(it)) return resul;//,
+    if (!ItPreIsValid(it)) return resul;//un
+    std::string undulation = Tostring(it);
+    if (!ItPreIsValid(it)) return resul;//m
+    if (!ItPreIsValid(it)) return resul;//,
+    if (!ItPreIsValid(it)) return resul;//age
+    std::string age = Tostring(it);
+    if (!ItPreIsValid(it)) return resul;//*
+    std::string crc = Tostring(it);//crc
+    //
+    if (!ItPreIsValid(it)) return resul;//jieshu
+    if (!ItPreIsValid(it)) return resul;//jieshu
+    LOG(INFO)<<crc;
+    d.erase(d.begin(), it);
+    GpsType gps_data;
+    gps_data.alt = std::stof(alt);
+    gps_data.lat = std::stof(lat);
+    gps_data.log = std::stof(lon);
+    resul.resize(sizeof(gps_data));
+    memcpy((void*)resul.data(), (void*)&gps_data, sizeof(GpsType));
+    return resul;
+  }
 };
+// class ImuDataProcess {
+//  public:
+//   std::vector<uint8_t> operator()(std::vector<uint8_t>& d) {
+//     auto it = std::find(d.begin(), d.end(), 0x55);
+//     std::vector<uint8_t> resul;
+//     if (it == d.end()) {
+//       return resul;
+//     }
+//     // LOG(INFO)<<"test";
+//     if (*++it != 0xaa) {
+//       return resul;
+//     }
+//     // LOG(INFO)<<"test1";
+
+//     char test_lenth[4];
+//     test_lenth[0] = *++it;
+//     test_lenth[1] = *++it;
+//     test_lenth[2] = *++it;
+//     test_lenth[3] = *++it;
+
+//     int data_lenth = *((int*)&test_lenth);
+//     // if ((it + data_length) != d.end()) {
+//     //   return resul;
+//     // }
+//     // LOG(INFO)<<"test2";
+//     std::string string_value;
+//     for (int i = 0; i < data_lenth - 6; i++) {
+//       resul.push_back(*++it);
+//     }
+//     d.erase(d.begin(), it);
+//     return resul;
+//   }
+// };
+
 class CheiryDataProcess {
  public:
   std::vector<uint8_t> operator()(std::vector<uint8_t>& d) {
@@ -76,7 +175,7 @@ class DevSeri : public DevInterface {
  public:
   using CallBack = std::function<void(std::vector<uint8_t>&&)>;
   DevSeri(const std::pair<std::string, int>& para, CallBack callback,
-          int peri = 10, int pro_len = 10);
+          int pro_len = 1, int peri = 10);
 
   void update();
   virtual bool tx(const std::vector<uint8_t>& data) const override;
@@ -91,6 +190,7 @@ class DevSeri : public DevInterface {
 
 
 #define  DevSeriWithDataProcess  DevSeri<lprobot::device::internal::CheiryDataProcess>
+#define  DevSeriWithRtkDataProcess  DevSeri<lprobot::device::internal::RtkDataProcess>
 }  // namespace internal
 }  // namespace device
 }  // namespace lprobot

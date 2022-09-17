@@ -172,7 +172,11 @@ void PubMowerData(const MowerData& mower_data) {
   tf_broadcaster->sendTransform(tf_trans);
 #endif
 }
-
+struct RtkData {
+  double lat;
+  double log;
+  double alt;
+};
 int main(int argc, char* argv[]) {
   ros::init(argc, argv, "odometry_publisher");
    geometry_msgs::TransformStamped transform;
@@ -197,22 +201,46 @@ int main(int argc, char* argv[]) {
    signal(SIGINT, termin_out);
    // signal(SIGTERM, termin_out);
    MowerData mower_data;
-   std::pair<std::string, int> port("/dev/ttyUSB0", 115200);
+   std::pair<std::string, int> port("/dev/ttyUSB1", 115200);
    try {
      Device.emplace_back(new internal::DevSeriWithDataProcess(
          port, [&mower_data](std::vector<uint8_t>&& d) {
-           std::cout << std::hex;
+          //  std::cout << std::hex;
            std::copy(d.begin(), d.end(),
                      std::ostream_iterator<int>(std::cout, " "));
            std::cout << std::endl;
            memcpy((void*)&mower_data, (void*)d.data(), d.size());
            PubMowerData(mower_data);
            LOG(INFO) << mower_data;
-         }));
+         },54));
   } catch (const std::string s) {
     LOG(INFO) << "Devive creat err" << s;
     return EXIT_FAILURE;
   }
+  // RtkData rtk_data;
+  // try {
+  //   Device.emplace_back(new internal::DevSeriWithRtkDataProcess(
+  //       std::pair<std::string,int>{"/dev/ttyUSB0", 115200},
+  //       [&rtk_data](std::vector<uint8_t>&& d) {
+  //         if(d.empty())return;
+  //         // std::cout << std::hex;
+  //         // std::copy(d.begin(), d.end(),
+  //                   // std::ostream_iterator<int>(std::cout, " "));
+  //         // std::cout << std::endl;
+  //         memcpy((void*)&rtk_data, (void*)d.data(), d.size());
+  //         LOG(INFO)<<rtk_data.alt;
+  //         LOG(INFO)<<rtk_data.log;
+  //         LOG(INFO)<<rtk_data.lat;
+  //         // PubMowerData(mower_data);
+  //         // LOG(INFO) << mower_data;
+  //       },
+  //       1));
+  // } catch (const std::string s) {
+  //   LOG(INFO) << "Devive creat err" << s;
+  //   return EXIT_FAILURE;
+  // }
+  // std::vector<uint8_t> rtk_cmd{'g', 'p', 'g', 'g', 'a', ' ', '0', '.', '1'};
+  // Device[1]->tx(rtk_cmd);
   // MowerSendData mower_send_data;
   while (!kill_thread) {
     //  std::unique_lock<std::mutex> mtx(SendMutex);
