@@ -323,6 +323,10 @@ void SmartCarKeyboardTeleopNode::keyboardLoop() {
         // turn = 0;
         // dirty = false;
     }
+    joy_.buttons[1] = 0;
+    joy_.buttons[3] = 0;
+    joy_.buttons[2] = 0;
+    joy_.buttons[7] = 0;
     bool pub_joy = false;
     switch (c) {
       case 'b':
