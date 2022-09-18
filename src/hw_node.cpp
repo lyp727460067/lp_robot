@@ -23,10 +23,11 @@
 #include "glog/logging.h"
 #include "Eigen/Core"
 #include <tf/transform_broadcaster.h>
+#include "sensor_msgs/NavSatFix.h"
 using namespace lprobot;
 using namespace device;
 
-#define ENABLE_ODOM_TF
+// #define ENABLE_ODOM_TF
 
 
 namespace {
@@ -192,78 +193,36 @@ int main(int argc, char* argv[]) {
    FLAGS_alsologtostderr = 1;  //打印到日志同时是否打印到控制
    LOG(INFO) << "lp_hw_main start";
    ros::NodeHandle ph;
+   ros::Publisher fix_pub = ph.advertise<sensor_msgs::NavSatFix>("/fix",10);
    odom_pub = ph.advertise<nav_msgs::Odometry>("/odom", 10);
    ros::Subscriber vel_sub =
        ph.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, &VelocityCallBack);
-
    std::vector<std::unique_ptr<DevInterface>> Device;
-
    signal(SIGINT, termin_out);
-   // signal(SIGTERM, termin_out);
-   MowerData mower_data;
-   std::pair<std::string, int> port("/dev/ttyUSB1", 115200);
-   try {
-     Device.emplace_back(new internal::DevSeriWithDataProcess(
-         port, [&mower_data](std::vector<uint8_t>&& d) {
-          //  std::cout << std::hex;
-           std::copy(d.begin(), d.end(),
-                     std::ostream_iterator<int>(std::cout, " "));
-           std::cout << std::endl;
-           memcpy((void*)&mower_data, (void*)d.data(), d.size());
-           PubMowerData(mower_data);
-           LOG(INFO) << mower_data;
-         },31));
+  try {
+    Device.emplace_back(new internal::DevSeriWithRtkDataProcess(
+        std::pair<std::string, int>{"/dev/ttyUSB0", 115200},
+        [&](std::vector<uint8_t>&& d) {
+          if (d.empty()) return;
+          RtkData rtk_data;
+          memcpy((void*)&rtk_data, (void*)d.data(), d.size());
+          sensor_msgs::NavSatFix navsat_fix;
+          navsat_fix.altitude = rtk_data.alt;
+          navsat_fix.longitude = rtk_data.log;
+          navsat_fix.latitude = rtk_data.lat;
+          navsat_fix.header.frame_id = "fix";
+          navsat_fix.header.stamp = ros::Time::now();
+          fix_pub.publish(navsat_fix);
+        },
+        1));
   } catch (const std::string s) {
     LOG(INFO) << "Devive creat err" << s;
     return EXIT_FAILURE;
   }
-  // RtkData rtk_data;
-  // try {
-  //   Device.emplace_back(new internal::DevSeriWithRtkDataProcess(
-  //       std::pair<std::string,int>{"/dev/ttyUSB0", 115200},
-  //       [&rtk_data](std::vector<uint8_t>&& d) {
-  //         if(d.empty())return;
-  //         // std::cout << std::hex;
-  //         // std::copy(d.begin(), d.end(),
-  //                   // std::ostream_iterator<int>(std::cout, " "));
-  //         // std::cout << std::endl;
-  //         memcpy((void*)&rtk_data, (void*)d.data(), d.size());
-  //         LOG(INFO)<<rtk_data.alt;
-  //         LOG(INFO)<<rtk_data.log;
-  //         LOG(INFO)<<rtk_data.lat;
-  //         // PubMowerData(mower_data);
-  //         // LOG(INFO) << mower_data;
-  //       },
-  //       1));
-  // } catch (const std::string s) {
-  //   LOG(INFO) << "Devive creat err" << s;
-  //   return EXIT_FAILURE;
-  // }
-  // std::vector<uint8_t> rtk_cmd{'g', 'p', 'g', 'g', 'a', ' ', '0', '.', '1'};
-  // Device[1]->tx(rtk_cmd);
-  // MowerSendData mower_send_data;
-  while (!kill_thread) {
-    //  std::unique_lock<std::mutex> mtx(SendMutex);
-    //  SendCondition.wait(mtx,[](){ return velocity_recive_flag; });
-    if (velocity_recive_flag) {
-      velocity_recive_flag = false;
-      for (auto& dev : Device) {
-        // mower_send_data.cmd = 0x01;
-        // mower_send_data.v = 0;
-        // mower_send_data.w = 0.3;
-        auto send_data = ToUartData(mower_send_data);
-        LOG(INFO) << "send_data with v= " << mower_send_data.v
-                  << " and w = " << mower_send_data.w;
-        dev->tx(send_data);
-        // LOG(INFO)<<send_data.size();
-        send_data.clear();
-      }
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    ros::spinOnce();
-  }
-
-  LOG(INFO) << " end hw_node";
+  std::vector<uint8_t> rtk_cmd{'g', 'p', 'g', 'g', 'a', ' ', '0', '.', '1'};
+  Device[1]->tx(rtk_cmd);
+  LOG(INFO) << " send cmd";
+  ros::spin();
   ros::shutdown();
   exit(0);
 }
