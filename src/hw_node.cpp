@@ -177,6 +177,7 @@ struct RtkData {
   double lat;
   double log;
   double alt;
+  int qual;
 };
 int main(int argc, char* argv[]) {
   ros::init(argc, argv, "odometry_publisher");
@@ -203,13 +204,26 @@ int main(int argc, char* argv[]) {
     Device.emplace_back(new internal::DevSeriWithRtkDataProcess(
         std::pair<std::string, int>{"/dev/ttyUSB0", 115200},
         [&](std::vector<uint8_t>&& d) {
+          // LOG(INFO)<<d.size();
           if (d.empty()) return;
           RtkData rtk_data;
           memcpy((void*)&rtk_data, (void*)d.data(), d.size());
+          if (rtk_data.qual == 0 || rtk_data.qual >= 6) {
+            LOG_EVERY_N(INFO, 20)
+                << "rtk qual not in solution :" << rtk_data.qual;
+            return;
+          }
+          double lat = rtk_data.lat / 100;
+          int ilat = (int)floor(lat) % 100;
+          lat = ilat + (lat - ilat) * 100 / 60;
+          //经度
+          double lon = rtk_data.log / 100;
+          int ilon = (int)floor(lon) % 1000;
+          lon = ilon + (lon - ilon) * 100 / 60;
           sensor_msgs::NavSatFix navsat_fix;
           navsat_fix.altitude = rtk_data.alt;
-          navsat_fix.longitude = rtk_data.log;
-          navsat_fix.latitude = rtk_data.lat;
+          navsat_fix.longitude = lon;
+          navsat_fix.latitude = lat;
           navsat_fix.header.frame_id = "fix";
           navsat_fix.header.stamp = ros::Time::now();
           fix_pub.publish(navsat_fix);
@@ -219,8 +233,12 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "Devive creat err" << s;
     return EXIT_FAILURE;
   }
-  std::vector<uint8_t> rtk_cmd{'g', 'p', 'g', 'g', 'a', ' ', '0', '.', '1'};
-  Device[1]->tx(rtk_cmd);
+  std::string rgk_cmd_strng = "gpgga 0.1\r\n";
+  std::vector<uint8_t> rtk_cmd;
+  for (const char& c : rgk_cmd_strng) {
+    rtk_cmd.push_back(c);
+  }
+  Device[0]->tx(rtk_cmd);
   LOG(INFO) << " send cmd";
   ros::spin();
   ros::shutdown();

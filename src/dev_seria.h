@@ -20,6 +20,7 @@ class RtkDataProcess {
     double lat;
     double log;
     double alt;
+    int qual;
   };
   void Log(char c) {
     std::string test;
@@ -28,6 +29,7 @@ class RtkDataProcess {
   }
   std::vector<uint8_t> operator()(std::vector<uint8_t>& d) {
     auto it = std::find(d.begin(), d.end(), 'G');
+    // Log(*it);
     std::vector<uint8_t> resul;
     if (it == d.end()) {
       return resul;
@@ -71,7 +73,9 @@ class RtkDataProcess {
     if (!ItPreIsValid(it)) return resul;
     if (!ItPreIsValid(it)) return resul;
     if (!ItPreIsValid(it)) return resul;
-    int qual = *std::prev(it);
+    int qual = (*std::prev(it))-'0';
+    // LOG(INFO)<<qual;
+    // Log(qual);
     if (!ItPreIsValid(it)) return resul;
     std::string stat = Tostring(it);
     if (!ItPreIsValid(it)) return resul;
@@ -92,12 +96,13 @@ class RtkDataProcess {
     //
     if (!ItPreIsValid(it)) return resul;//jieshu
     if (!ItPreIsValid(it)) return resul;//jieshu
-    LOG(INFO)<<crc;
+    // LOG(INFO)<<crc;
     d.erase(d.begin(), it);
     GpsType gps_data;
     gps_data.alt = std::stof(alt);
     gps_data.lat = std::stof(lat);
     gps_data.log = std::stof(lon);
+    gps_data.qual = qual;
     resul.resize(sizeof(gps_data));
     memcpy((void*)resul.data(), (void*)&gps_data, sizeof(GpsType));
     return resul;
