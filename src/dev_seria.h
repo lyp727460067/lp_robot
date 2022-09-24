@@ -1,6 +1,6 @@
 #ifndef DEV_SERIA_H
 #define DEV_SERIA_H
-
+#include "iomanip"
 #include <functional>
 #include <memory>
 #include <thread>
@@ -25,15 +25,18 @@ class RtkDataProcess {
   void Log(char c) {
     std::string test;
     test.push_back(c);
-    std::cout << test << std::endl;
+     LOG(INFO)<< test ;
   }
   std::vector<uint8_t> operator()(std::vector<uint8_t>& d) {
-    auto it = std::find(d.begin(), d.end(), 'G');
+    auto it = std::find(d.begin(), d.end(), '$');
     // Log(*it);
+    // LOG(INFO)<<d.size();
     std::vector<uint8_t> resul;
     if (it == d.end()) {
       return resul;
     }
+
+    // Log(*it);
     it = std::find(it, d.end(), ',');
     if (it == d.end()) {
       return resul;
@@ -42,6 +45,8 @@ class RtkDataProcess {
       d.erase(d.begin(), it);
       return resul;
     }
+
+    // Log(*it);
     //
     auto Tostring = [&](std::vector<uint8_t>::iterator& it) -> std::string {
       std::string result;
@@ -92,18 +97,22 @@ class RtkDataProcess {
     if (!ItPreIsValid(it)) return resul;//age
     std::string age = Tostring(it);
     if (!ItPreIsValid(it)) return resul;//*
-    std::string crc = Tostring(it);//crc
+    // std::string crc = Tostring(it);//crc
     //
-    if (!ItPreIsValid(it)) return resul;//jieshu
-    if (!ItPreIsValid(it)) return resul;//jieshu
+    // if (!ItPreIsValid(it)) return resul;//jieshu
+    // if (!ItPreIsValid(it)) return resul;//jieshu
     // LOG(INFO)<<crc;
     d.erase(d.begin(), it);
+    // LOG(INFO)<<d.size();
     GpsType gps_data;
-    gps_data.alt = std::stof(alt);
-    gps_data.lat = std::stof(lat);
-    gps_data.log = std::stof(lon);
+    size_t size = 24;
+    gps_data.alt = std::stod(alt,&size);
+    gps_data.lat = std::stold(lat,&size);
+    gps_data.log = std::stold(lon,&size);
     gps_data.qual = qual;
     resul.resize(sizeof(gps_data));
+    // LOG(INFO)<<gps_data.lat;
+    // LOG(INFO)<<gps_data.log;
     memcpy((void*)resul.data(), (void*)&gps_data, sizeof(GpsType));
     return resul;
   }

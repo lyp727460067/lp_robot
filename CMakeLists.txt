@@ -158,6 +158,9 @@ add_executable(${PROJECT_NAME}_hw_node ${hw_src})
 add_executable(${PROJECT_NAME}_mutytarget_node src/mult_point_nav.cpp)
 add_executable(${PROJECT_NAME}_view_odom_node src/rosbag_node.cpp)
 add_executable(${PROJECT_NAME}_pub_odom_tf src/pub_odom_tf.cpp ) 
+add_executable(${PROJECT_NAME}_pub_gps_pose src/pub_gps_pose_from_bag.cpp) 
+
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -175,6 +178,13 @@ target_link_libraries(${PROJECT_NAME}_pub_odom_tf
   ${catkin_LIBRARIES}
   ${GFLAGS_LIBRARIES}
  )
+target_link_libraries(${PROJECT_NAME}_pub_gps_pose
+  ${GLOG_LIBRARIES}
+  ${EIGEN3_LIBS}
+  ${catkin_LIBRARIES}
+  ${GFLAGS_LIBRARIES}
+ )
+
 
 
 target_link_libraries(${PROJECT_NAME}_keybord

@@ -222,13 +222,13 @@ int main(int argc, char* argv[]) {
           lon = ilon + (lon - ilon) * 100 / 60;
           sensor_msgs::NavSatFix navsat_fix;
           navsat_fix.altitude = rtk_data.alt;
-          navsat_fix.longitude = lon;
-          navsat_fix.latitude = lat;
+          navsat_fix.longitude =rtk_data.log ;// lon;
+          navsat_fix.latitude = rtk_data.lat;//lat;
           navsat_fix.header.frame_id = "fix";
           navsat_fix.header.stamp = ros::Time::now();
           fix_pub.publish(navsat_fix);
         },
-        1));
+        50));
   } catch (const std::string s) {
     LOG(INFO) << "Devive creat err" << s;
     return EXIT_FAILURE;
