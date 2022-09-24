@@ -217,31 +217,6 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "Devive creat err" << s;
     return EXIT_FAILURE;
   }
-  // RtkData rtk_data;
-  // try {
-  //   Device.emplace_back(new internal::DevSeriWithRtkDataProcess(
-  //       std::pair<std::string,int>{"/dev/ttyUSB0", 115200},
-  //       [&rtk_data](std::vector<uint8_t>&& d) {
-  //         if(d.empty())return;
-  //         // std::cout << std::hex;
-  //         // std::copy(d.begin(), d.end(),
-  //                   // std::ostream_iterator<int>(std::cout, " "));
-  //         // std::cout << std::endl;
-  //         memcpy((void*)&rtk_data, (void*)d.data(), d.size());
-  //         LOG(INFO)<<rtk_data.alt;
-  //         LOG(INFO)<<rtk_data.log;
-  //         LOG(INFO)<<rtk_data.lat;
-  //         // PubMowerData(mower_data);
-  //         // LOG(INFO) << mower_data;
-  //       },
-  //       1));
-  // } catch (const std::string s) {
-  //   LOG(INFO) << "Devive creat err" << s;
-  //   return EXIT_FAILURE;
-  // }
-  // std::vector<uint8_t> rtk_cmd{'g', 'p', 'g', 'g', 'a', ' ', '0', '.', '1'};
-  // Device[1]->tx(rtk_cmd);
-  // MowerSendData mower_send_data;
   while (!kill_thread) {
     //  std::unique_lock<std::mutex> mtx(SendMutex);
     //  SendCondition.wait(mtx,[](){ return velocity_recive_flag; });
@@ -268,66 +243,3 @@ int main(int argc, char* argv[]) {
   exit(0);
 }
 
-
-
-// int main(int argc, char* argv[]) {
-//   ros::init(argc, argv, "odometry_publisher");
-//    geometry_msgs::TransformStamped transform;
-//    nav_msgs::Odometry odom;
-//    odom.pose.pose.position.x  = transform.transform.translation.x;
-//    odom.pose.pose.position.y  = transform.transform.translation.y;
-//    odom.pose.pose.position.z  = transform.transform.translation.z;
-//    odom.pose.pose.orientation.w  = transform.transform.rotation.w;
-
-//   google::InitGoogleLogging(argv[0]);
-//   google::ParseCommandLineFlags(&argc, &argv, true);
-//   FLAGS_logtostderr = 1;      //是否打印到控制台
-//   FLAGS_alsologtostderr = 1;  //打印到日志同时是否打印到控制
-//   LOG(INFO) << "lp_hw_main start";
-//   ros::NodeHandle ph;
-//   odom_pub = ph.advertise<nav_msgs::Odometry>("/odom", 10);
-//   ros::Subscriber vel_sub =
-//       ph.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, &VelocityCallBack);
-
-//   std::vector<std::unique_ptr<DevInterface>> Device;
-
-//   signal(SIGINT, termin_out);
-//   // signal(SIGTERM, termin_out);
-//   HwData hw_data;
-//   try {
-//     Device.emplace_back(
-//         new internal::DevSocket(host_ip,[&hw_data](std::vector<uint8_t>&& d) {
-//           // std::copy(d.begin(), d.end(),
-//           //          std::ostream_iterator<uint8_t>(std::cout, " "));
-//           memcpy( (void*)&hw_data, (void*)d.data(),d.size());
-//           PubHwData(hw_data);
-//         }));
-//   } catch (const std::string s) {
-//     LOG(INFO) << "Devive creat err" << s;
-//     return EXIT_FAILURE;
-//   }
-
-//   while (!kill_thread) {
-//     //  std::unique_lock<std::mutex> mtx(SendMutex);
-//     //  SendCondition.wait(mtx,[](){ return velocity_recive_flag; });
-
-//     if (velocity_recive_flag) {
-//       velocity_recive_flag = false;
-//       for (auto& dev : Device) {
-//         std::vector<uint8_t> send_data(8,0);
-//        // LOG(INFO) << "start pub_recive cmd";
-//         memcpy((void*)send_data.data(),(void*)&velocity_msg,
-//                sizeof(velocity_msg));
-//         LOG(INFO)<<"send_data with v= "<<velocity_msg.v<<" and w = "<<velocity_msg.w;
-//         dev->tx(send_data);
-//         send_data.clear();
-//       }
-//     }
-//     std::this_thread::sleep_for(std::chrono::milliseconds(1));
-//     ros::spinOnce();
-//   }
-
-//   LOG(INFO) << " end hw_node";
-//   ros::shutdown();
-//   exit(0);
-// }
