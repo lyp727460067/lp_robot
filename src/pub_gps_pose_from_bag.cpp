@@ -28,6 +28,8 @@
 #include "sensor_msgs/NavSatFix.h"
 #include "Eigen/Core"
 #include "Eigen/Geometry"
+
+#include <signal.h>  // signal functions
 DEFINE_string(ground_true_file,"","file of ground true to draw in rviz");
 //DEFINE_string(color_of_path,"","file of ground true to draw in rviz");
 namespace {
@@ -58,22 +60,24 @@ Eigen::Vector3d LatLongAltToEcef(const double latitude, const double longitude,
   const double y = (N + altitude) * cos_phi * sin_lambda;
   const double z = (b_squared / a_squared * N + altitude) * sin_phi;
 
+  // LOG(INFO)<<x<<" "<<y<<" "<<z;
   return Eigen::Vector3d(x, y, z);
 }
 
 std::unique_ptr<Eigen::Affine3d> ecef_to_local_frame = nullptr;
 Eigen::Affine3d ComputeLocalFrameFromLatLong(const double latitude,
-                                             const double longitude) {
-  const Eigen::Vector3d translation = LatLongAltToEcef(latitude, longitude, 0.);
+                                             const double longitude,
+                                             double alt) {
+  const Eigen::Vector3d translation =
+      LatLongAltToEcef(latitude, longitude, alt);
   const Eigen::Quaterniond rotation =
       Eigen::AngleAxisd(DegToRad(latitude - 90.), Eigen::Vector3d::UnitY()) *
       Eigen::AngleAxisd(DegToRad(-longitude), Eigen::Vector3d::UnitZ());
 
   Eigen::Translation3d translatioin{rotation * -translation};
+
   return translatioin * rotation;
 }
-
-
 
 }  // namespace
 std::map<std::string, std::vector<PoseVector>> ExtractData(
@@ -120,19 +124,24 @@ std::map<std::string, std::vector<PoseVector>> ExtractData(
          view_iterator++) {
       rosbag::MessageInstance msg = *view_iterator;
       if (msg.isType<sensor_msgs::NavSatFix>()) {
-        // if (msg.getTopic() != "/fix") {
+        // if (msg.getTopic() == "/fix") {
           geometry_msgs::Point point;
           auto gps = *msg.instantiate<sensor_msgs::NavSatFix>();
+          if (isnan(gps.latitude) || isnan(gps.longitude) ||
+              isnan(gps.altitude))
+            continue;
           if (ecef_to_local_frame == nullptr) {
-            ecef_to_local_frame = std::make_unique<Eigen::Affine3d>(
-                ComputeLocalFrameFromLatLong(gps.latitude, gps.longitude));
+            ecef_to_local_frame =
+                std::make_unique<Eigen::Affine3d>(ComputeLocalFrameFromLatLong(
+                    gps.latitude, gps.longitude, gps.altitude));
+            std::cout << std::setprecision(12)
+                      << ecef_to_local_frame->translation().transpose()
+                      << std::endl;
           }
           static int i = 0;
           Eigen::Vector3d lat_pose =
               *ecef_to_local_frame *
               LatLongAltToEcef(gps.latitude, gps.longitude, gps.altitude);
-          lat_pose.z() = 0;
-          LOG(INFO)<<lat_pose.transpose();
           file_pose_vector.push_back(
               {lat_pose.x(), lat_pose.y(), gps.header.stamp});
         // }
@@ -163,9 +172,9 @@ void PubPoseWithMark(
     mark.type = visualization_msgs::Marker::POINTS;
     // mark.type = visualization_msgs::Marker::ARROW;
     mark.lifetime = ros::Duration(0);
-    mark.scale.x = 0.1;
-    mark.scale.y = 0.1;
-    mark.scale.z = 0.1;
+    mark.scale.x = 0.05;
+    mark.scale.y = 0.05;
+    mark.scale.z = 0.05;
     std::uniform_real_distribution<float> ran(0, 1);
     mark.color.r = 1;       // ran(e);//1.0;
     mark.color.a = 1;       // ran(e);
@@ -183,7 +192,13 @@ void PubPoseWithMark(
     }
     marks.markers.push_back(mark);
   }
-  markpub.publish(marks);
+  ros::Rate rate(10);
+  while (ros::ok) {
+    rate.sleep();
+    // usleep(100000);
+    LOG_EVERY_N(INFO, 10) << "still pub path in:" ;
+    markpub.publish(marks);
+  }
 }
   tf::TransformBroadcaster* odom_broadcaster;
 void PubMapToOdomTf(ros::NodeHandle &nh) {
@@ -230,28 +245,73 @@ void PubPoseWithPath(
       this_pose_stamped.header.seq = ++index;
       this_pose_stamped.header.stamp = ros::Time::now();
       this_pose_stamped.header.frame_id = "map";
-      LOG_EVERY_N(INFO,10)<<"still pub path in:"<<pose_with_name.first;
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      // std::this_thread::sleep_for(std::chrono::milliseconds(100));
       paths.at(pose_with_name.first).poses.push_back(this_pose_stamped);
-      path_pubs[pose_with_name.first].publish(paths.at(pose_with_name.first));
+      // path_pubs[pose_with_name.first].publish(paths.at(pose_with_name.first));
+    }
+  }
+  ros::Rate rate(100);
+  while (ros::ok) {
+    // rate.sleep();
+    usleep(1000000);
+    for (const auto& path_pub : path_pubs) {
+      path_pub.second.publish(paths.at(path_pub.first));
+      LOG_EVERY_N(INFO, 10) << "still pub path in:" <<path_pub.first;
     }
   }
 }
 
-
+extern "C" {
+static void termin_out(int sig) {
+  LOG(INFO) << "recive termina";
+  printf("recive termina\n");
+  // if (sig == SIGINT) {
+  ros::shutdown();
+  // }
+}
+}
 
 int main(int argc, char **argv) {
   if (argc < 2) {
     return EXIT_FAILURE;
   }
+
   ros::init(argc, argv, "pub_gps_from_bag");
+  signal(SIGINT, &termin_out);
+  signal(SIGTERM, &termin_out);
+  signal(SIGQUIT, &termin_out);
   odom_broadcaster = new   tf::TransformBroadcaster();
   ros::NodeHandle nh;
   std::vector<std::string> file_name;
-  for (int i = 1; i < argc; i++) {
-    // std::cout << argv[i]<<std::endl;
-    file_name.emplace_back(argv[i]);
+  if(argc ==2){
+    file_name.push_back(argv[1]);
+  } else {
+    std::set<std::string> fp_set;
+    std::string targetPath(argv[1]);
+    boost::filesystem::path myPath(targetPath);
+    boost::filesystem::directory_iterator endIter;
+    for (boost::filesystem::directory_iterator iter(myPath); iter != endIter;
+         iter++) {
+      if (boost::filesystem::is_directory(*iter)) {
+        std::cout << "thiere is dir" << std::endl;
+        std::cout << iter->path().string() << std::endl;
+
+      } else {
+        std::cout << "is a file" << std::endl;
+        std::cout << iter->path().string() << std::endl;
+        fp_set.insert(iter->path().string());
+      }
+    }
+    // //
+    for (const auto fp : fp_set) {
+      file_name.push_back(fp);
+      std::cout << fp << std::endl;
+    }
   }
+  // for (int i = 1; i < argc; i++) {
+  //   // std::cout << argv[i]<<std::endl;
+  //   file_name.emplace_back(argv[i]);
+  // }
 
   ros::start();
   // std::thread tf_thread([&]() {
@@ -261,7 +321,8 @@ int main(int argc, char **argv) {
   //   }
   // });
   auto poses = ExtractData(file_name,true);
-  PubPoseWithPath(nh, poses);
+  PubPoseWithMark(nh, poses);
+  // PubPoseWithPath(nh, poses);
   ros::spin();
   ros::shutdown();
 }

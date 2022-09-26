@@ -164,6 +164,7 @@ int main(int argc, char** argv) {
   return (0);
 }
 
+int pub_joy = 0;
 void SmartCarKeyboardTeleopNode::keyboardLoop() {
   char c;
   double max_tv = walk_vel_;
@@ -323,32 +324,28 @@ void SmartCarKeyboardTeleopNode::keyboardLoop() {
         // turn = 0;
         // dirty = false;
     }
-    joy_.buttons[1] = 0;
-    joy_.buttons[3] = 0;
-    joy_.buttons[2] = 0;
-    joy_.buttons[7] = 0;
-    bool pub_joy = false;
+
     switch (c) {
       case 'b':
       case 'B':
-        pub_joy = true;
+        pub_joy = 1;
         joy_.buttons[1] = 1;
         break;
       case 'y':
       case 'Y':
 
-        pub_joy = true;
+        pub_joy = 1;
         joy_.buttons[3] = 1;
         break;
       case 'x':
       case 'X':
         joy_.buttons[2] = 1;
-        pub_joy = true;
+        pub_joy = 1;
         break;
       case 't':
       case 'T':
         joy_.buttons[7] = 1;
-        pub_joy = true;
+        pub_joy = 1;
         break;
       default:
         break;
@@ -361,9 +358,21 @@ void SmartCarKeyboardTeleopNode::keyboardLoop() {
       pub_.publish(cmdvel_);
     }
     if (pub_joy) {
+      pub_joy = 0;
+      // if (pub_joy == 2) {
+
+      // }
+      // if (pub_joy == 1) {
+      //   pub_joy = 2;
+      // }
       joy_.header.frame_id = "base";
-      joy_.header.stamp= ros::Time::now();
-      
+      joy_.header.stamp = ros::Time::now();
+      pub_joy_.publish(joy_);
+      usleep(100000);
+      joy_.buttons[1] = 0;
+      joy_.buttons[3] = 0;
+      joy_.buttons[2] = 0;
+      joy_.buttons[7] = 0;
       pub_joy_.publish(joy_);
     }
   }
