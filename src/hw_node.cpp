@@ -310,7 +310,7 @@ int main(int argc, char* argv[]) {
    g_clean_area_client = ph.serviceClient<std_srvs::Empty>(
        "mower_map_service/delete_mowing_area_bag");
   ros::Subscriber current_state_pub =
-      ph.subscribe<std_msgs::String>("mower_logic/current_state",);
+      ph.subscribe<std_msgs::String>("mower_logic/current_state",10,MowerState);
    ros::ServiceClient set_doking_client;
    odom_pub = ph.advertise<nav_msgs::Odometry>("/odom", 10);
    ros::Subscriber vel_sub =
