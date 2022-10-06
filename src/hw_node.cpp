@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <tf/transform_listener.h>
 
+#include "sensor_msgs/Joy.h"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -12,7 +13,9 @@
 #include <mutex>
 #include <thread>
 #include <vector>
-
+#include "mower_msgs/HighLevelControlSrv.h"
+#include "sensor_msgs/Joy.h"
+#include "std_srvs/Empty.h"
 // #include "dev_socket.h"
 #include "geometry_msgs/Transform.h"
 #include "gflags/gflags.h"
@@ -150,11 +153,17 @@ nav_msgs::Odometry ToOdomtry(const MowerData& data) {
   return odom_msg;
 }
 tf::TransformBroadcaster* tf_broadcaster;
-uint32_t mower_data_last_cmd;
-void PubMowerData(const MowerData& mower_data) {
+uint32_t g_mower_data_last_cmd;
+ros::ServiceClient g_start_mower_client;
+ros::ServiceClient g_clean_area_client;
+ros::Publisher g_pub_joy;
+int pub_joy = false;
+int start_area_record_state = 0;
 
-  uint32_t  cmd =  mower_data.cmd^mower_data_last_cmd;
-  mower_data_last_cmd = mower_data.cmd;
+
+void PubMowerData(const MowerData& mower_data) {
+  uint32_t  cmd =  mower_data.cmd^g_mower_data_last_cmd;
+  g_mower_data_last_cmd = mower_data.cmd;
 
   bool start_area = (cmd & 0x00000040) ? true : false;
   bool finish_area = (cmd & 0x00000080) ? true : false;
@@ -162,6 +171,70 @@ void PubMowerData(const MowerData& mower_data) {
   bool start_mower = (cmd & 0x00000200) ? true : false;
   bool clean_area = (cmd & 0x00000400) ? true : false;
   bool set_doking = (cmd & 0x00000800) ? true : false;
+  sensor_msgs::Joy joy;
+  joy.buttons.resize(8);
+  joy.buttons.clear();
+
+  if (start_area_record_state == 1) {
+    joy.buttons[7] = 1;
+    start_area_record_state = 2;
+    pub_joy = 1;
+  } else if (start_area_record_state == 2) {
+    joy.buttons[1] = 1;
+    start_area_record_state = 3;
+    pub_joy = 1;
+  } else if (start_area_record_state == 3) {
+    if (finish_area) {
+      joy.buttons[1] = 1;
+      pub_joy = 1;
+    } else if (save_area) {
+      joy.buttons[3] = 1;
+      start_area_record_state = 0;
+      pub_joy = 1;
+    }
+  }
+  if (start_area_record_state) {
+    if (set_doking) {
+      joy.buttons[2] = 1;
+      pub_joy = 1;
+    }
+  }
+  if (pub_joy) {
+    if (pub_joy == 2) {
+      pub_joy = 0;
+    } else {
+      pub_joy = 2;
+    }
+    g_pub_joy.publish(joy);
+  }
+  if (start_area) {
+    mower_msgs::HighLevelControlSrv srv;
+    srv.request.command = 3;
+    if (!g_start_mower_client.call(srv)) {
+      LOG(INFO) << "call start record map faild";
+    } else {
+      start_area_record_state  = 1;
+      LOG(INFO) << " call start record map succuss";
+    }
+  }
+
+  if (start_mower) {
+    mower_msgs::HighLevelControlSrv srv;
+    srv.request.command = 1;
+    if (!g_start_mower_client.call(srv)) {
+      LOG(INFO) << "call start mower faild";
+    } else {
+      LOG(INFO) << "call start mower succuss";
+    }
+  }
+  if (clean_area) {
+    std_srvs::Empty srv;
+    if (!g_clean_area_client.call(srv)) {
+      LOG(INFO) << "clean record map faild";
+    } else {
+      LOG(INFO) << "clean record map";
+    }
+  }
 
   nav_msgs::Odometry odom_msg = ToOdomtry(mower_data);
   odom_msg.child_frame_id = "base_link";
@@ -204,10 +277,20 @@ int main(int argc, char* argv[]) {
    FLAGS_alsologtostderr = 1;  //打印到日志同时是否打印到控制
    LOG(INFO) << "lp_hw_main start";
    ros::NodeHandle ph;
+  //  ros::ServiceClient start_area_client ;
+  //  ros::ServiceClient finish_area_client;
+  //  ros::ServiceClient save_area_client;
+   g_start_mower_client = ph.serviceClient<mower_msgs::HighLevelControlSrv>(
+       "mower_service/high_level_control");
+   g_clean_area_client = ph.serviceClient<std_srvs::Empty>(
+       "mower_map_service/delete_mowing_area_bag");
+
+   ros::ServiceClient set_doking_client;
    odom_pub = ph.advertise<nav_msgs::Odometry>("/odom", 10);
    ros::Subscriber vel_sub =
        ph.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, &VelocityCallBack);
 
+   g_pub_joy = ph.advertise<sensor_msgs::Joy>("/joy", 1);
    std::vector<std::unique_ptr<DevInterface>> Device;
 
    signal(SIGINT, termin_out);
