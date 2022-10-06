@@ -147,6 +147,7 @@ class CheiryDataProcess {
     }
     // LOG(INFO)<<"test";
     if (*++it != 0xaa) {
+      d.erase(d.begin(), it);
       return resul;
     }
     // LOG(INFO)<<"test1";

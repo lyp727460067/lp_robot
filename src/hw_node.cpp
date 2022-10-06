@@ -26,6 +26,7 @@
 #include "glog/logging.h"
 #include "Eigen/Core"
 #include <tf/transform_broadcaster.h>
+#include <std_msgs/String.h>
 using namespace lprobot;
 using namespace device;
 
@@ -59,8 +60,8 @@ void termin_out(int sig) {
 
 }  // namespace
 struct MowerData {
+  uint16_t  state;
   uint16_t cmd;
-  uint16_t state;
   float l_encode;
   float r_encode;
   float ultra_left_front;
@@ -88,23 +89,21 @@ void VelocityCallBack(const geometry_msgs::TwistConstPtr& msg) {
 std::vector<uint8_t> ToUartData(const MowerSendData& data) {
   std::vector<uint8_t> result;
   std::vector<uint8_t> temp{100, 0};
-  LOG(INFO)<<data.v;
   memcpy((void*)temp.data(), (void*)&data, sizeof(MowerSendData));
   result.push_back(0x55);
   result.push_back(0xaa);
   char lenth_temp[4];
   int lenth = 6 + sizeof(MowerSendData);
-  LOG(INFO) << lenth;
   memcpy((void*)lenth_temp, (void*)&lenth, 4);
   for (int i = 0; i < 4; i++) {
     result.push_back(lenth_temp[i]);
   }
-  std::cout<<std::hex;
+  // std::cout<<std::hex;
   for (int i = 0; i < sizeof(MowerSendData); i++) {
-    std::cout<<int(temp[i]);
+    // std::cout<<int(temp[i]);
     result.push_back(temp[i]);
   }
-  std::cout<<std::endl;
+  // std::cout<<std::endl;
   result.push_back(0x44);
   return result;
 }
@@ -129,7 +128,7 @@ nav_msgs::Odometry ToOdomtry(const MowerData& data) {
   const double l_encode = data.l_encode - old_data.l_encode;
   const double r_encode = data.r_encode - old_data.r_encode;
   old_data = data;
-  LOG(INFO)<< l_encode<<" "<<r_encode;
+  // LOG_EVERY_N(INFO,10)<< l_encode<<" "<<r_encode;
   float odom_v = (r_encode + l_encode) * 0.5f;  // mm/s
   const double angle_delta = (r_encode - l_encode) / ( kWheelLenth);
   const double odom_deltax = odom_v * cos(odom_theta) ;
@@ -159,12 +158,22 @@ ros::ServiceClient g_clean_area_client;
 ros::Publisher g_pub_joy;
 int pub_joy = false;
 int start_area_record_state = 0;
+int start_aran_record_cnt = 0;
+void MowerState(const std_msgs::String::ConstPtr& msg) {
+  if (msg->data == ("DOCKING")) {
+  } else if (msg->data == "IDLE") {
+    start_aran_record_cnt = 0;
+    start_area_record_state = 0;
+  } else if (msg->data == "MOWING") {
 
-
+  } else if (msg->data == "AREA_RECORDING") {
+  
+  }
+}
 void PubMowerData(const MowerData& mower_data) {
-  uint32_t  cmd =  mower_data.cmd^g_mower_data_last_cmd;
-  g_mower_data_last_cmd = mower_data.cmd;
-
+  uint32_t cmd = mower_data.cmd;  // mower_data.cmd^g_mower_data_last_cmd;
+  // g_mower_data_last_cmd = mower_data.cmd;
+  LOG(INFO)<<mower_data.cmd;
   bool start_area = (cmd & 0x00000040) ? true : false;
   bool finish_area = (cmd & 0x00000080) ? true : false;
   bool save_area = (cmd & 0x00000100) ? true : false;
@@ -172,33 +181,48 @@ void PubMowerData(const MowerData& mower_data) {
   bool clean_area = (cmd & 0x00000400) ? true : false;
   bool set_doking = (cmd & 0x00000800) ? true : false;
   sensor_msgs::Joy joy;
-  joy.buttons.resize(8);
-  joy.buttons.clear();
-
-  if (start_area_record_state == 1) {
-    joy.buttons[7] = 1;
-    start_area_record_state = 2;
-    pub_joy = 1;
-  } else if (start_area_record_state == 2) {
-    joy.buttons[1] = 1;
-    start_area_record_state = 3;
-    pub_joy = 1;
-  } else if (start_area_record_state == 3) {
-    if (finish_area) {
+  joy.buttons = std::vector<int>(8, 0);
+  if (start_aran_record_cnt> 10) {
+    if (start_area_record_state == 1) {
+      LOG(INFO)<<"start b";
       joy.buttons[1] = 1;
+      start_area_record_state = 2;
       pub_joy = 1;
-    } else if (save_area) {
-      joy.buttons[3] = 1;
-      start_area_record_state = 0;
-      pub_joy = 1;
+    } else if (start_area_record_state == 2) {
+      if (finish_area) {
+        LOG(INFO)<<"finish arean";
+        joy.buttons[1] = 1;
+        start_area_record_state = 3;
+        pub_joy = 1;
+      } else if (save_area) {
+        LOG(INFO)<<"save arean";
+        joy.buttons[3] = 1;
+        start_area_record_state = 0;
+        pub_joy = 1;
+      }
+    } else if (start_area_record_state == 3) {
+      if (start_area) {
+        joy.buttons[1] = 1;
+        start_area_record_state = 2;
+        pub_joy = 1;
+      } else if (save_area) {
+        joy.buttons[3] = 1;
+        start_area_record_state = 0;
+        pub_joy = 1;
+      }
+
+    } else {
+      // LOG(INFO)<<"please press fishi buttun or save buttun";
     }
+  }else {
+    start_aran_record_cnt ++;
   }
-  if (start_area_record_state) {
-    if (set_doking) {
-      joy.buttons[2] = 1;
-      pub_joy = 1;
-    }
+  // if (start_area_record_state) {
+  if (set_doking) {
+    joy.buttons[2] = 1;
+    pub_joy = 1;
   }
+  // }
   if (pub_joy) {
     if (pub_joy == 2) {
       pub_joy = 0;
@@ -207,13 +231,15 @@ void PubMowerData(const MowerData& mower_data) {
     }
     g_pub_joy.publish(joy);
   }
-  if (start_area) {
+  if (start_area && start_area_record_state==0) {
     mower_msgs::HighLevelControlSrv srv;
+    start_aran_record_cnt = 0;
     srv.request.command = 3;
     if (!g_start_mower_client.call(srv)) {
       LOG(INFO) << "call start record map faild";
     } else {
       start_area_record_state  = 1;
+      // usleep(1000);
       LOG(INFO) << " call start record map succuss";
     }
   }
@@ -276,15 +302,15 @@ int main(int argc, char* argv[]) {
    FLAGS_logtostderr = 1;      //是否打印到控制台
    FLAGS_alsologtostderr = 1;  //打印到日志同时是否打印到控制
    LOG(INFO) << "lp_hw_main start";
-   ros::NodeHandle ph;
-  //  ros::ServiceClient start_area_client ;
+   ros::NodeHandle ph; //  ros::ServiceClient start_area_client ;
   //  ros::ServiceClient finish_area_client;
   //  ros::ServiceClient save_area_client;
    g_start_mower_client = ph.serviceClient<mower_msgs::HighLevelControlSrv>(
        "mower_service/high_level_control");
    g_clean_area_client = ph.serviceClient<std_srvs::Empty>(
        "mower_map_service/delete_mowing_area_bag");
-
+  ros::Subscriber current_state_pub =
+      ph.subscribe<std_msgs::String>("mower_logic/current_state",);
    ros::ServiceClient set_doking_client;
    odom_pub = ph.advertise<nav_msgs::Odometry>("/odom", 10);
    ros::Subscriber vel_sub =
@@ -296,17 +322,18 @@ int main(int argc, char* argv[]) {
    signal(SIGINT, termin_out);
    // signal(SIGTERM, termin_out);
    MowerData mower_data;
-   std::pair<std::string, int> port("/dev/ttyUSB1", 115200);
+   std::pair<std::string, int> port("/dev/ttyUSB0", 115200);
    try {
      Device.emplace_back(new internal::DevSeriWithDataProcess(
          port, [&mower_data](std::vector<uint8_t>&& d) {
           //  std::cout << std::hex;
-           std::copy(d.begin(), d.end(),
-                     std::ostream_iterator<int>(std::cout, " "));
-           std::cout << std::endl;
+          //  std::copy(d.begin(), d.end(),
+          //            std::ostream_iterator<int>(std::cout, " "));
+          //  std::cout << std::endl;
            memcpy((void*)&mower_data, (void*)d.data(), d.size());
            PubMowerData(mower_data);
-           LOG(INFO) << mower_data;
+          //  LOG_EVERY_N(INFO,100) << 
+          LOG_EVERY_N(INFO,100)<<"still recive uart with data "<<mower_data;
          },31));
   } catch (const std::string s) {
     LOG(INFO) << "Devive creat err" << s;
@@ -322,9 +349,9 @@ int main(int argc, char* argv[]) {
         // mower_send_data.v = 0;
         // mower_send_data.w = 0.3;
         auto send_data = ToUartData(mower_send_data);
-        LOG(INFO) << "send_data with v= " << mower_send_data.v
-                  << " and w = " << mower_send_data.w;
-        dev->tx(send_data);
+        // LOG_EVERY_N(INFO,10) << "send_data with v= " << mower_send_data.v
+        //           << " and w = " << mower_send_data.w;
+        // dev->tx(send_data);
         // LOG(INFO)<<send_data.size();
         send_data.clear();
       }

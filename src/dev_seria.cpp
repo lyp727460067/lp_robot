@@ -28,7 +28,7 @@ class DevSeri<DataProcess>::Serio {
       : result_fun_(callback),process_lenth_(lenth) {
     int try_time = try_times_;
     int fd;
-    while (try_time) {
+    while (try_time && !kill_thread_ ) {
       fd = linx_seria::Create(para.first.data(), para.second);
       if (fd == -1) {
         try_time--;
