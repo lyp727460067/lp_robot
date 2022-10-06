@@ -150,7 +150,19 @@ nav_msgs::Odometry ToOdomtry(const MowerData& data) {
   return odom_msg;
 }
 tf::TransformBroadcaster* tf_broadcaster;
+uint32_t mower_data_last_cmd;
 void PubMowerData(const MowerData& mower_data) {
+
+  uint32_t  cmd =  mower_data.cmd^mower_data_last_cmd;
+  mower_data_last_cmd = mower_data.cmd;
+
+  bool start_area = (cmd & 0x00000040) ? true : false;
+  bool finish_area = (cmd & 0x00000080) ? true : false;
+  bool save_area = (cmd & 0x00000100) ? true : false;
+  bool start_mower = (cmd & 0x00000200) ? true : false;
+  bool clean_area = (cmd & 0x00000400) ? true : false;
+  bool set_doking = (cmd & 0x00000800) ? true : false;
+
   nav_msgs::Odometry odom_msg = ToOdomtry(mower_data);
   odom_msg.child_frame_id = "base_link";
   odom_msg.header.frame_id = "odom";
