@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   mower_msgs
   tf
 )
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Cmake)
+#set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/Cmake)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -171,7 +171,7 @@ add_executable(${PROJECT_NAME}_pub_odom_tf src/pub_odom_tf.cpp )
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_pub_odom_tf
-  ${GLOG_LIBRARIES}
+ glog::glog
   ${EIGEN3_LIBS}
   ${catkin_LIBRARIES}
   ${GFLAGS_LIBRARIES}
@@ -179,25 +179,25 @@ target_link_libraries(${PROJECT_NAME}_pub_odom_tf
 
 
 target_link_libraries(${PROJECT_NAME}_keybord
-  ${GLOG_LIBRARIES}
+glog::glog
   ${EIGEN3_LIBS}
   ${catkin_LIBRARIES}
   ${GFLAGS_LIBRARIES}
  )
 target_link_libraries(${PROJECT_NAME}_hw_node
-  ${GLOG_LIBRARIES}
+glog::glog
   ${EIGEN3_LIBS}
   ${catkin_LIBRARIES}
   ${GFLAGS_LIBRARIES}
  )
  target_link_libraries(${PROJECT_NAME}_mutytarget_node
- ${GLOG_LIBRARIES}
+ glog::glog
  ${EIGEN3_LIBS}
  ${catkin_LIBRARIES}
  ${GFLAGS_LIBRARIES}
 )
 target_link_libraries(${PROJECT_NAME}_view_odom_node
-${GLOG_LIBRARIES}
+glog::glog
 ${EIGEN3_LIBS}
 ${catkin_LIBRARIES}
 ${GFLAGS_LIBRARIES}

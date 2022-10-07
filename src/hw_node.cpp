@@ -173,7 +173,7 @@ void MowerState(const std_msgs::String::ConstPtr& msg) {
 void PubMowerData(const MowerData& mower_data) {
   uint32_t cmd = mower_data.cmd;  // mower_data.cmd^g_mower_data_last_cmd;
   // g_mower_data_last_cmd = mower_data.cmd;
-  LOG(INFO)<<mower_data.cmd;
+  // LOG(INFO)<<mower_data.cmd;
   bool start_area = (cmd & 0x00000040) ? true : false;
   bool finish_area = (cmd & 0x00000080) ? true : false;
   bool save_area = (cmd & 0x00000100) ? true : false;
