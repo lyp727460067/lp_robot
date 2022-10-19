@@ -55,6 +55,12 @@
 #include <termios.h>
 #include "sensor_msgs/Joy.h"
 #include <boost/thread/thread.hpp>
+#include "mower_msgs/HighLevelControlSrv.h"
+#include "std_srvs/Empty.h"
+#include <std_msgs/String.h>
+#include <std_msgs/Empty.h>
+
+
 #define KEYCODE_W 0x77
 #define KEYCODE_A 0x61
 #define KEYCODE_S 0x73
@@ -65,6 +71,10 @@
 #define KEYCODE_D_CAP 0x44
 #define KEYCODE_S_CAP 0x53
 #define KEYCODE_W_CAP 0x57
+
+ros::ServiceClient g_start_mower_client;
+ros::ServiceClient g_clean_area_client;
+ros::Publisher clean_gps_file_pub;
 
 class SmartCarKeyboardTeleopNode {
  private:
@@ -152,6 +162,12 @@ int main(int argc, char** argv) {
   // while(ros::ok()){
   //	ros::spinOnce();
   // }
+  ros::NodeHandle ph;
+  g_start_mower_client = ph.serviceClient<mower_msgs::HighLevelControlSrv>(
+      "mower_service/high_level_control");
+  g_clean_area_client = ph.serviceClient<std_srvs::Empty>(
+      "mower_map_service/delete_mowing_area_bag");
+  clean_gps_file_pub = ph.advertise<std_msgs::Empty>("/gps_file_clean", 1);
   ros::spin();
 
   tbk.t.interrupt();
@@ -245,6 +261,8 @@ void SmartCarKeyboardTeleopNode::keyboardLoop() {
       continue;
     }
 
+    mower_msgs::HighLevelControlSrv high_level_srv;
+    std_srvs::Empty clean_map_srv;
     switch (c) {
       case 'w':
         max_tv = walk_vel_;
@@ -314,7 +332,31 @@ void SmartCarKeyboardTeleopNode::keyboardLoop() {
         dirty = true;
         pub = true;
         break;
-
+      case 'C':
+        // 开始清除gps文件
+        clean_gps_file_pub.publish(std_msgs::Empty());
+        // 清除当前地图
+        if (!g_clean_area_client.call(clean_map_srv)) {
+          ROS_INFO("clean record map faild");
+        } else {
+          ROS_INFO("clean record map");
+        }
+        // 进入录制地图模式
+        high_level_srv.request.command = 3;
+        if (!g_start_mower_client.call(high_level_srv)) {
+          ROS_INFO("call start record map faild");
+        } else {
+          ROS_INFO("call start record map succuss");
+        }
+        break;
+      case 'M':
+        high_level_srv.request.command = 1;
+        if (!g_start_mower_client.call(high_level_srv)) {
+          ROS_INFO("call start mower faild");
+        } else {
+          ROS_INFO("call start mower succuss");
+        }
+        break;
       default:
         break;
         // max_tv = walk_vel_;
@@ -364,6 +406,16 @@ void SmartCarKeyboardTeleopNode::keyboardLoop() {
       joy_.header.frame_id = "base";
       joy_.header.stamp= ros::Time::now();
       
+      pub_joy_.publish(joy_);
+      usleep(100000);
+      joy_.buttons[0] = 0;
+      joy_.buttons[1] = 0;
+      joy_.buttons[2] = 0;
+      joy_.buttons[3] = 0;
+      joy_.buttons[4] = 0;
+      joy_.buttons[5] = 0;
+      joy_.buttons[6] = 0;
+      joy_.buttons[7] = 0;
       pub_joy_.publish(joy_);
     }
   }
