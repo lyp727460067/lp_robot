@@ -215,12 +215,13 @@ int main(int argc, char* argv[]) {
           }
           double lat = rtk_data.lat / 100;
           int ilat = (int)floor(lat) % 100;
-          lat = ilat + (lat - ilat) * 100 / 60;
+          lat = ilat + double(lat - ilat) * 100.0 / 60.0;
           //经度
           double lon = rtk_data.log / 100;
           int ilon = (int)floor(lon) % 1000;
-          lon = ilon + (lon - ilon) * 100 / 60;
+          lon = ilon + double(lon - ilon) * 100.0 / 60.0;
           sensor_msgs::NavSatFix navsat_fix;
+	  LOG(INFO)<<rtk_data.qual ;
           navsat_fix.altitude = rtk_data.alt;
           navsat_fix.longitude = lon;
           navsat_fix.latitude = lat;
@@ -228,7 +229,7 @@ int main(int argc, char* argv[]) {
           navsat_fix.header.stamp = ros::Time::now();
           fix_pub.publish(navsat_fix);
         },
-        1));
+        50));
   } catch (const std::string s) {
     LOG(INFO) << "Devive creat err" << s;
     return EXIT_FAILURE;
