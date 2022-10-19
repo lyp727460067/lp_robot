@@ -30,7 +30,7 @@
 using namespace lprobot;
 using namespace device;
 
-#define ENABLE_ODOM_TF
+//#define ENABLE_ODOM_TF
 
 
 namespace {
@@ -120,7 +120,7 @@ std::ostream &operator<<(std::ostream& out, const MowerData& data) {
 
 
 double odom_theta;
-constexpr double kWheelLenth = 0.27;
+constexpr double kWheelLenth = 0.274;
 Eigen::Vector2d odom_translation;
 
 nav_msgs::Odometry ToOdomtry(const MowerData& data) {
@@ -151,9 +151,11 @@ nav_msgs::Odometry ToOdomtry(const MowerData& data) {
   odom_msg.twist.twist.angular.x = 0;
   return odom_msg;
 }
+
 tf::TransformBroadcaster* tf_broadcaster;
 uint32_t g_mower_data_last_cmd;
 ros::ServiceClient g_start_mower_client;
+ros::Publisher clean_gps_file_pub;
 ros::ServiceClient g_clean_area_client;
 ros::Publisher g_pub_joy;
 int pub_joy = false;
@@ -180,6 +182,9 @@ void PubMowerData(const MowerData& mower_data) {
   bool start_mower = (cmd & 0x00000200) ? true : false;
   bool clean_area = (cmd & 0x00000400) ? true : false;
   bool set_doking = (cmd & 0x00000800) ? true : false;
+
+  // bool clean_doking = (cmd & 0x00001000) ? true : false;
+
   sensor_msgs::Joy joy;
   joy.buttons = std::vector<int>(8, 0);
   if (start_aran_record_cnt> 10) {
@@ -254,6 +259,7 @@ void PubMowerData(const MowerData& mower_data) {
     }
   }
   if (clean_area) {
+    clean_gps_file_pub.publish(std_msgs::Empty());
     std_srvs::Empty srv;
     if (!g_clean_area_client.call(srv)) {
       LOG(INFO) << "clean record map faild";
@@ -317,20 +323,27 @@ int main(int argc, char* argv[]) {
        ph.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, &VelocityCallBack);
 
    g_pub_joy = ph.advertise<sensor_msgs::Joy>("/joy", 1);
+   clean_gps_file_pub = ph.advertise<std_msgs::Empty>("/gps_file_clean", 1);
    std::vector<std::unique_ptr<DevInterface>> Device;
+
 
    signal(SIGINT, termin_out);
    // signal(SIGTERM, termin_out);
+   LOG(INFO)<<"data construct ";
    MowerData mower_data;
-   std::pair<std::string, int> port("/dev/ttyUSB0", 115200);
+   std::pair<std::string, int> port("/dev/device0", 115200);
    try {
      Device.emplace_back(new internal::DevSeriWithDataProcess(
          port, [&mower_data](std::vector<uint8_t>&& d) {
+          if(d.empty()){
+            LOG(INFO)<<"data empty";
+            return;
+          }
           //  std::cout << std::hex;
           //  std::copy(d.begin(), d.end(),
           //            std::ostream_iterator<int>(std::cout, " "));
           //  std::cout << std::endl;
-           memcpy((void*)&mower_data, (void*)d.data(), d.size());
+           memcpy((void*)&mower_data, (void*)d.data(), sizeof(MowerData));
            PubMowerData(mower_data);
           //  LOG_EVERY_N(INFO,100) << 
           LOG_EVERY_N(INFO,100)<<"still recive uart with data "<<mower_data;
@@ -339,6 +352,8 @@ int main(int argc, char* argv[]) {
     LOG(INFO) << "Devive creat err" << s;
     return EXIT_FAILURE;
   }
+  sleep(3);
+  LOG(INFO)<<"start send";
   while (!kill_thread) {
     //  std::unique_lock<std::mutex> mtx(SendMutex);
     //  SendCondition.wait(mtx,[](){ return velocity_recive_flag; });
@@ -351,7 +366,7 @@ int main(int argc, char* argv[]) {
         auto send_data = ToUartData(mower_send_data);
         // LOG_EVERY_N(INFO,10) << "send_data with v= " << mower_send_data.v
         //           << " and w = " << mower_send_data.w;
-        // dev->tx(send_data);
+         dev->tx(send_data);
         // LOG(INFO)<<send_data.size();
         send_data.clear();
       }

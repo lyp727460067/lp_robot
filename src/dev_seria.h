@@ -142,21 +142,33 @@ class CheiryDataProcess {
   std::vector<uint8_t> operator()(std::vector<uint8_t>& d) {
     auto it = std::find(d.begin(), d.end(),0x55);
     std::vector<uint8_t> resul;
+    auto ItPreIsValid = [&](std::vector<uint8_t>::iterator& it) {
+      if (it == d.end()) return false;
+      ++it;
+      if (it == d.end()) return false;
+      return true;
+    };
     if (it == d.end()) {
       return resul;
     }
     // LOG(INFO)<<"test";
-    if (*++it != 0xaa) {
+    if (!ItPreIsValid(it)) return resul;//,
+    if (*it != 0xaa) {
       d.erase(d.begin(), it);
       return resul;
     }
     // LOG(INFO)<<"test1";
 
     char test_lenth[4];
-    test_lenth[0] = *++it;
-    test_lenth[1] = *++it;
-    test_lenth[2] = *++it;
-    test_lenth[3] = *++it;
+    
+    if (!ItPreIsValid(it)) return resul;//,
+    test_lenth[0] = *it;
+    if (!ItPreIsValid(it)) return resul;//,
+    test_lenth[1] = *it;
+    if (!ItPreIsValid(it)) return resul;//,
+    test_lenth[2] = *it;
+    if (!ItPreIsValid(it)) return resul;//,
+    test_lenth[3] = *it;
     
     int   data_lenth=    *((int*)&test_lenth);
     // if ((it + data_length) != d.end()) {
@@ -165,7 +177,8 @@ class CheiryDataProcess {
     // LOG(INFO)<<"test2";
     std::string string_value;
     for (int i = 0; i < data_lenth-6; i++) {
-      resul.push_back(*++it);
+      if (!ItPreIsValid(it)) return resul;//,
+      resul.push_back(*it);
     }
     d.erase(d.begin(), it);
     return resul;
